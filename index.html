@@ -397,13 +397,30 @@
 
       <!-- LOCALIZAÇÃO: área de atuação e números da plataforma -->
       <section class="location-section">
-        <div class="map-art">
-          <span class="map-line map-line-one"></span
-          ><span class="map-line map-line-two"></span
-          ><span class="map-pin pin-one">•</span
-          ><span class="map-pin pin-two">•</span
-          ><span class="map-pin pin-three">•</span>
-          <div class="map-label">Nossa região <span>●</span></div>
+        <!-- Mapa ilustrativo: no backend, os pontos podem vir de coordenadas reais. -->
+        <div
+          class="map-art"
+          role="img"
+          aria-label="Mapa do Piauí com produtores próximos"
+        >
+          <svg class="piaui-map" viewBox="0 0 420 500" aria-hidden="true">
+            <path
+              class="map-state"
+              d="M151 25 243 39 302 30 355 69 346 122 374 165 351 218 365 267 333 315 340 370 292 403 247 466 195 447 168 407 125 394 113 343 76 311 88 259 57 221 77 175 58 133 96 98 104 52Z"
+            />
+            <path
+              class="map-river"
+              d="M116 74c48 43 62 88 45 134-16 45-4 93 37 143 22 27 38 57 45 90"
+            />
+            <path
+              class="map-river map-river-two"
+              d="M296 74c-40 45-52 91-35 136 15 38 13 75-7 112"
+            />
+          </svg>
+          <span class="map-pin pin-one" title="Teresina">Teresina</span>
+          <span class="map-pin pin-two" title="União">União</span>
+          <span class="map-pin pin-three" title="Altos">Altos</span>
+          <div class="map-label"><span class="map-label-dot"></span>Piauí</div>
         </div>
         <div class="location-copy">
           <p class="eyebrow">Pertinho de você</p>
