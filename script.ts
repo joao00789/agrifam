@@ -1,4 +1,4 @@
-import type { CartItem, ProductFilters } from './types';
+import type { CartItem, ProductFilters } from "./types";
 
 /**
  * Ponto de entrada tipado reservado para a migração gradual do frontend.
@@ -9,11 +9,11 @@ import type { CartItem, ProductFilters } from './types';
  */
 export const backendIntegration = {
   /** Substituir por GET /api/produtos quando a API estiver disponível. */
-  productsEndpoint: '/api/produtos',
+  productsEndpoint: "/api/produtos",
   /** Substituir por GET /api/produtores quando a API estiver disponível. */
-  producersEndpoint: '/api/produtores',
+  producersEndpoint: "/api/produtores",
   /** Substituir por POST /api/pedidos no checkout real. */
-  ordersEndpoint: '/api/pedidos'
+  ordersEndpoint: "/api/pedidos",
 } as const;
 
 /**
@@ -27,7 +27,7 @@ export interface FrontendState {
 }
 
 export const defaultFilters: ProductFilters = {
-  search: '',
-  category: '',
-  sort: 'featured'
+  search: "",
+  category: "",
+  sort: "featured",
 };

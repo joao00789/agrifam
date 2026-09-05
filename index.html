@@ -8,10 +8,14 @@
       content="AgriFam conecta você a quem produz alimentos locais com cuidado."
     />
     <title>AgriFam | Do campo para sua mesa</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <path
+      fill="currentColor"
+      stroke="none"
+      d="M5 3h14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-5.586l-4.707 4.707A1 1 0 0 1 7 21v-4H5a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3m3 5a1 1 0 0 0 0 2h8a1 1 0 0 0 0-2zm0 4a1 1 0 0 0 0 2h5a1 1 0 0 0 0-2z"
+    />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link
@@ -42,10 +46,34 @@
             type="search"
             placeholder="Busque produtos, produtores..."
             aria-label="Buscar no AgriFam"
-          /><kbd>⌘ K</kbd>
+          /><button
+            class="voice-search"
+            type="button"
+            aria-label="Pesquisar por voz"
+          >
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2m7 9v3m-4 0h8" />
+            </svg>
+          </button>
         </div>
         <nav class="desktop-nav" aria-label="Navegação principal">
-          <a href="#produtos">Produtos</a><a href="#produtores">Produtores</a
+          <a class="home-nav-link" href="#topo"
+            ><svg
+              class="nav-home-icon"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                d="M12.707 2.293l9 9c.63 .63 .184 1.707 -.707 1.707h-1v6a3 3 0 0 1 -3 3h-10a3 3 0 0 1 -3 -3v-6h-1c-.89 0 -1.337 -1.077 -.707 -1.707l9 -9a1 1 0 0 1 1.414 0m.793 8.707h-3a1.5 1.5 0 0 0 -1.5 1.5v3a1.5 1.5 0 0 0 1.5 1.5h3a1.5 1.5 0 0 0 1.5 -1.5v-3a1.5 1.5 0 0 0 -1.5 -1.5"
+              />
+            </svg>
+            Início</a
+          ><a href="#produtos">Produtos</a><a href="#produtores">Produtores</a
           ><a href="#como-funciona">Como funciona</a>
         </nav>
         <div class="header-actions">
@@ -54,7 +82,11 @@
             data-action="favorites"
             aria-label="Ver favoritos"
           >
-            ♡<span class="nav-count favorite-count">0</span></button
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M19.5 12.572 12 20l-7.5-7.428A5 5 0 1 1 12 6.006a5 5 0 1 1 7.5 6.566"
+              /></svg
+            ><span class="nav-count favorite-count">0</span></button
           ><button
             class="icon-button cart-nav"
             data-action="cart"
@@ -64,6 +96,18 @@
               class="nav-count cart-count"
               >0</span
             ></button
+          ><button
+            class="icon-button chat-nav"
+            data-action="chat"
+            aria-label="Abrir conversas"
+          >
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M4 5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-5l-5 5v-5H7a3 3 0 0 1-3-3V5Z"
+              />
+              <path d="M8 7h8M8 11h5" />
+            </svg>
+            <span class="nav-count chat-count">2</span></button
           ><a class="login-link" href="#login">Entrar</a
           ><a class="button button-small header-seller" href="#seja-produtor"
             >Vender no AgriFam <span>↗</span></a
@@ -84,11 +128,35 @@
           type="search"
           placeholder="O que você procura?"
           aria-label="Buscar produtos"
-        /><button aria-label="Pesquisar">↵</button>
+        /><button
+          class="voice-search"
+          type="button"
+          aria-label="Pesquisar por voz"
+        >
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2m7 9v3m-4 0h8" />
+          </svg>
+        </button>
       </div>
       <nav class="mobile-menu" id="mobileMenu" aria-label="Navegação móvel">
-        <a href="#topo">Início</a><a href="#produtos">Produtos</a
-        ><a href="#categorias">Categorias</a><a href="#produtores">Produtores</a
+        <a href="#topo"
+          ><svg
+            class="nav-home-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M12.707 2.293l9 9c.63 .63 .184 1.707 -.707 1.707h-1v6a3 3 0 0 1 -3 3h-10a3 3 0 0 1 -3 -3v-6h-1c-.89 0 -1.337 -1.077 -.707 -1.707l9 -9a1 1 0 0 1 1.414 0m.793 8.707h-3a1.5 1.5 0 0 0 -1.5 1.5v3a1.5 1.5 0 0 0 1.5 1.5h3a1.5 1.5 0 0 0 1.5 -1.5v-3a1.5 1.5 0 0 0 -1.5 -1.5"
+            />
+          </svg>
+          Início</a
+        ><a href="#produtos">Produtos</a><a href="#categorias">Categorias</a
+        ><a href="#produtores">Produtores</a
         ><a href="#educacao">AgriFam Educação</a><a href="#sobre">Sobre nós</a
         ><a href="#seja-produtor">Seja um produtor</a
         ><a href="#login">Entrar</a>
@@ -192,7 +260,11 @@
             </p>
           </div>
           <div class="view-actions">
-            <button class="filter-trigger" id="filterTrigger">☷ Filtros</button
+            <button class="filter-trigger" id="filterTrigger">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h16M7 12h10m-7 6h4" />
+              </svg>
+              Filtros</button
             ><a class="text-link" href="#produtos"
               >Ver catálogo <span>→</span></a
             >
@@ -376,17 +448,20 @@
           >
         </div>
         <div class="training-grid">
-          <button class="training-card" data-training="Palestras">
+          <button class="training-card reveal-item" data-training="Palestras">
             <span class="training-number">01</span><i>◌</i>
             <h3>Palestras</h3>
             <p>Conversas para abrir caminhos e inspirar novas ideias.</p>
             <span class="card-arrow">↗</span></button
-          ><button class="training-card" data-training="Oficinas">
+          ><button class="training-card reveal-item" data-training="Oficinas">
             <span class="training-number">02</span><i>✣</i>
             <h3>Oficinas</h3>
             <p>Aprendizado prático para colocar a mão na massa.</p>
             <span class="card-arrow">↗</span></button
-          ><button class="training-card" data-training="Materiais educativos">
+          ><button
+            class="training-card reveal-item"
+            data-training="Materiais educativos"
+          >
             <span class="training-number">03</span><i>▱</i>
             <h3>Materiais educativos</h3>
             <p>Conteúdos simples para consultar quando precisar.</p>
@@ -468,9 +543,28 @@
           /></a>
           <p>Conectando quem produz<br />a quem valoriza.</p>
           <div class="socials">
-            <a href="#" aria-label="Instagram">ig</a
-            ><a href="#" aria-label="Facebook">f</a
-            ><a href="#" aria-label="WhatsApp">wa</a>
+            <a href="#" aria-label="Instagram">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+                <path d="M17.5 6.5h.01" />
+              </svg> </a
+            ><a href="#" aria-label="Facebook">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M14 21v-7h3l1-4h-4V8a2 2 0 0 1 2-2h2V2h-3a5 5 0 0 0-5 5v3H7v4h3v7z"
+                />
+              </svg> </a
+            ><a href="#" aria-label="WhatsApp">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M3 21l1.7-3.8A8.8 8.8 0 1 1 12 21a8.8 8.8 0 0 1-4.2-1.1z"
+                />
+                <path
+                  d="M8.5 8.5c.4-.4 1-.2 1.2.3l.6 1.4c.1.3 0 .6-.2.8l-.6.5a6 6 0 0 0 3 3l.5-.6c.2-.2.5-.3.8-.2l1.4.6c.5.2.7.8.3 1.2l-.5.5c-.5.5-1.3.7-2 .4a8.5 8.5 0 0 1-5.2-5.2c-.3-.7-.1-1.5.4-2z"
+                />
+              </svg>
+            </a>
           </div>
         </div>
         <div class="footer-column">
@@ -513,6 +607,43 @@
           >Checkout demonstrativo. Pagamentos serão integrados
           futuramente.</small
         >
+      </div>
+    </aside>
+
+    <!-- CHAT: histórico local demonstrativo, pronto para integração com /api/conversas -->
+    <aside class="chat-drawer" id="chatDrawer" aria-hidden="true">
+      <div class="drawer-header chat-drawer-header">
+        <div>
+          <p class="eyebrow">Conexão direta</p>
+          <h2>Conversas</h2>
+        </div>
+        <button id="closeChat" aria-label="Fechar conversas">×</button>
+      </div>
+      <div
+        class="chat-role-switch"
+        role="group"
+        aria-label="Perfil da conversa"
+      >
+        <button class="active" data-chat-role="buyer">Sou comprador</button>
+        <button data-chat-role="producer">Sou produtor</button>
+      </div>
+      <div class="chat-layout">
+        <div class="chat-contacts" id="chatContacts"></div>
+        <section class="chat-conversation" aria-label="Conversa selecionada">
+          <div class="chat-contact-heading" id="chatContactHeading"></div>
+          <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+          <form class="chat-form" id="chatForm">
+            <input
+              id="chatInput"
+              type="text"
+              maxlength="500"
+              placeholder="Escreva uma mensagem..."
+              autocomplete="off"
+              required
+            />
+            <button type="submit" aria-label="Enviar mensagem">↑</button>
+          </form>
+        </section>
       </div>
     </aside>
 

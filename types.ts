@@ -35,7 +35,7 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
-export type SortOption = 'featured' | 'price-low' | 'rating';
+export type SortOption = "featured" | "price-low" | "rating";
 
 export interface ProductFilters {
   search: string;
