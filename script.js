@@ -1,8 +1,23 @@
 /*
- * DADOS MOCKADOS: substitua estas coleções por respostas de API quando o backend existir.
- * Contratos TypeScript para essa troca ficam em types.ts.
- * Exemplo futuro: fetch('/api/produtos').then(response => response.json()).
+ * AgriFam - comportamento da interface
+ *
+ * Ordem dos blocos:
+ * 1. Dados demonstrativos e estado local
+ * 2. Utilitários compartilhados
+ * 3. Navegação, busca e carrossel
+ * 4. Catálogo, filtros e favoritos
+ * 5. Carrinho e checkout demonstrativo
+ * 6. Produtores, modais e autenticação
+ * 7. Conversas
+ *
+ * Os dados abaixo são temporários. Quando o backend existir, substitua as
+ * coleções pelas respostas da API e mantenha os mesmos formatos de types.ts.
  */
+
+// -----------------------------------------------------------------------------
+// 1. DADOS DEMONSTRATIVOS E ESTADO LOCAL
+// -----------------------------------------------------------------------------
+
 const categories = [
   { name: "Frutas", icon: "apple", count: "24 produtos" },
   { name: "Verduras", icon: "leaf", count: "18 produtos" },
@@ -15,15 +30,23 @@ const categories = [
   { name: "Regionais", icon: "map-pin", count: "21 produtos" },
 ];
 const categoryIcons = {
-  apple: '<path d="M12 20.5c-4.5 0-7-3.7-7-8.1C5 9.2 7.1 7 10 7c1.2 0 1.7.7 2 .7s.9-.7 2.4-.7c2.1 0 3.6 1.1 4.3 2.2-3.8 2.1-3.2 7.2.6 8.6-.5 1.1-1.1 2.2-1.8 3.1-1 1.4-2 2.7-3.6 2.7s-2-.9-3.7-.9-2.2.9-3.7.9-2.5-1.2-3.5-2.6Z"/><path d="M14 5.5c.7-1.1 1.8-1.8 3.2-1.9.1 1.4-.4 2.5-1.1 3.3-.8.9-2 1.6-3.2 1.5-.1-1.1.3-2.2 1.1-2.9Z"/>',
+  apple:
+    '<path d="M12 20.5c-4.5 0-7-3.7-7-8.1C5 9.2 7.1 7 10 7c1.2 0 1.7.7 2 .7s.9-.7 2.4-.7c2.1 0 3.6 1.1 4.3 2.2-3.8 2.1-3.2 7.2.6 8.6-.5 1.1-1.1 2.2-1.8 3.1-1 1.4-2 2.7-3.6 2.7s-2-.9-3.7-.9-2.2.9-3.7.9-2.5-1.2-3.5-2.6Z"/><path d="M14 5.5c.7-1.1 1.8-1.8 3.2-1.9.1 1.4-.4 2.5-1.1 3.3-.8.9-2 1.6-3.2 1.5-.1-1.1.3-2.2 1.1-2.9Z"/>',
   leaf: '<path d="M20 4C11 4 5 8 5 14c0 3 2 5 5 5 6 0 10-6 10-15Z"/><path d="M4 20c3-5 7-8 12-10"/>',
-  carrot: '<path d="m12 10 4 9a2 2 0 0 1-1.8 2.8H9.8A2 2 0 0 1 8 19l4-9Z"/><path d="M12 10c-2-2-2-4 0-6 2 2 2 4 0 6ZM9 7C7 6 6 4 7 2c2 1 3 3 2 5ZM15 7c2-1 3-3 2-5-2 1-3 3-2 5Z"/>',
-  wheat: '<path d="M12 21V5M12 8c-3 0-5-2-5-5 3 0 5 2 5 5ZM12 13c-3 0-5-2-5-5 3 0 5 2 5 5ZM12 18c-3 0-5-2-5-5 3 0 5 2 5 5ZM12 8c3 0 5-2 5-5-3 0-5 2-5 5ZM12 13c3 0 5-2 5-5-3 0-5 2-5 5ZM12 18c3 0 5-2 5-5-3 0-5 2-5 5Z"/>',
-  hexagon: '<path d="m12 3 7.8 4.5v9L12 21l-7.8-4.5v-9L12 3Z"/><path d="M8 10h8M8 14h8"/>',
-  cheese: '<path d="M4 10h16v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8Z"/><path d="M4 10c2-4 6-6 12-6l4 6M8 14h.01M14 17h.01"/>',
-  candy: '<path d="m7 8-4-2v4l4 2M17 8l4-2v4l-4 2"/><path d="M7 8h10v8H7z"/><path d="M10 8v8M14 8v8"/>',
-  palette: '<path d="M12 4a8 8 0 0 0 0 16h1.5a1.5 1.5 0 0 0 0-3H12a2 2 0 0 1 0-4h2a6 6 0 0 0 0-12Z"/><path d="M7 10h.01M9 7h.01M14 7h.01M17 10h.01"/>',
-  "map-pin": '<path d="M12 21s7-5.2 7-11a7 7 0 1 0-14 0c0 5.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2"/>',
+  carrot:
+    '<path d="m12 10 4 9a2 2 0 0 1-1.8 2.8H9.8A2 2 0 0 1 8 19l4-9Z"/><path d="M12 10c-2-2-2-4 0-6 2 2 2 4 0 6ZM9 7C7 6 6 4 7 2c2 1 3 3 2 5ZM15 7c2-1 3-3 2-5-2 1-3 3-2 5Z"/>',
+  wheat:
+    '<path d="M12 21V5M12 8c-3 0-5-2-5-5 3 0 5 2 5 5ZM12 13c-3 0-5-2-5-5 3 0 5 2 5 5ZM12 18c-3 0-5-2-5-5 3 0 5 2 5 5ZM12 8c3 0 5-2 5-5-3 0-5 2-5 5ZM12 13c3 0 5-2 5-5-3 0-5 2-5 5ZM12 18c3 0 5-2 5-5-3 0-5 2-5 5Z"/>',
+  hexagon:
+    '<path d="m12 3 7.8 4.5v9L12 21l-7.8-4.5v-9L12 3Z"/><path d="M8 10h8M8 14h8"/>',
+  cheese:
+    '<path d="M4 10h16v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8Z"/><path d="M4 10c2-4 6-6 12-6l4 6M8 14h.01M14 17h.01"/>',
+  candy:
+    '<path d="m7 8-4-2v4l4 2M17 8l4-2v4l-4 2"/><path d="M7 8h10v8H7z"/><path d="M10 8v8M14 8v8"/>',
+  palette:
+    '<path d="M12 4a8 8 0 0 0 0 16h1.5a1.5 1.5 0 0 0 0-3H12a2 2 0 0 1 0-4h2a6 6 0 0 0 0-12Z"/><path d="M7 10h.01M9 7h.01M14 7h.01M17 10h.01"/>',
+  "map-pin":
+    '<path d="M12 21s7-5.2 7-11a7 7 0 1 0-14 0c0 5.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2"/>',
 };
 const products = [
   {
@@ -173,7 +196,7 @@ const producers = [
       "https://images.unsplash.com/photo-1606722590583-6951b5ea92ad?auto=format&fit=crop&w=800&q=80",
   },
 ];
-// Estado temporário do cliente. No backend, cart e favorites devem pertencer ao usuário autenticado.
+// Estado temporário do cliente. No backend, isso deve pertencer ao usuário autenticado.
 let cart = JSON.parse(localStorage.getItem("agrifam-cart") || "[]");
 let favorites = JSON.parse(localStorage.getItem("agrifam-favorites") || "[]");
 let activeProducts = [...products];
@@ -224,6 +247,10 @@ chatContacts.forEach((contact) => {
   if (savedChats[contact.id]) contact.messages = savedChats[contact.id];
 });
 
+// -----------------------------------------------------------------------------
+// 2. UTILITÁRIOS COMPARTILHADOS
+// -----------------------------------------------------------------------------
+
 const $ = (selector, context = document) => context.querySelector(selector);
 const $$ = (selector, context = document) => [
   ...context.querySelectorAll(selector),
@@ -242,15 +269,15 @@ document.body.classList.add("has-scroll-reveal");
 const revealObserver =
   "IntersectionObserver" in window
     ? new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          entry.target.classList.add("is-visible");
-          revealObserver.unobserve(entry.target);
-        });
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -35px" },
-    )
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add("is-visible");
+            revealObserver.unobserve(entry.target);
+          });
+        },
+        { threshold: 0.12, rootMargin: "0px 0px -35px" },
+      )
     : null;
 const observeRevealItems = (context) => {
   const items = $$(".reveal-item", context);
@@ -261,7 +288,10 @@ const observeRevealItems = (context) => {
   items.forEach((item) => revealObserver.observe(item));
 };
 
-// NAVBAR E CARROSSEL
+// -----------------------------------------------------------------------------
+// 3. NAVEGAÇÃO, BUSCA E CARROSSEL
+// -----------------------------------------------------------------------------
+
 const swiper = new Swiper(".hero", {
   loop: true,
   autoplay: { delay: 5500, disableOnInteraction: false },
@@ -272,78 +302,23 @@ const swiper = new Swiper(".hero", {
 });
 
 const heroShader = document.querySelector("#heroShader");
-const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const initHeroShader = (canvas) => {
+const prefersReducedMotion = window.matchMedia(
+  "(prefers-reduced-motion: reduce)",
+).matches;
+const initHeroShader = async (canvas) => {
   if (!canvas || prefersReducedMotion) return;
-  const gl = canvas.getContext("webgl", { alpha: true, antialias: false });
-  if (!gl) return;
-
-  const vertexSource = `
-    attribute vec2 position;
-    void main() {
-      gl_Position = vec4(position, 0.0, 1.0);
-    }
-  `;
-  const fragmentSource = `
-    precision mediump float;
-    uniform vec2 resolution;
-    uniform float time;
-
-    void main() {
-      vec2 uv = gl_FragCoord.xy / resolution.xy;
-      float aspect = resolution.x / resolution.y;
-      vec2 point = uv - 0.5;
-      point.x *= aspect;
-      float wave = sin(point.x * 3.2 + time * 0.18) * 0.08;
-      wave += sin(point.y * 5.0 - time * 0.12) * 0.05;
-      float glow = smoothstep(0.55, -0.2, length(point + vec2(wave, wave * 0.5)));
-      vec3 color = mix(vec3(0.18, 0.42, 0.22), vec3(0.72, 0.88, 0.42), glow);
-      gl_FragColor = vec4(color, glow * 0.42);
-    }
-  `;
-  const compileShader = (type, source) => {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    return gl.getShaderParameter(shader, gl.COMPILE_STATUS) ? shader : null;
-  };
-  const vertexShader = compileShader(gl.VERTEX_SHADER, vertexSource);
-  const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fragmentSource);
-  if (!vertexShader || !fragmentShader) return;
-  const program = gl.createProgram();
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return;
-
-  const buffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  gl.useProgram(program);
-  const position = gl.getAttribLocation(program, "position");
-  const resolution = gl.getUniformLocation(program, "resolution");
-  const time = gl.getUniformLocation(program, "time");
-  gl.enableVertexAttribArray(position);
-  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-
-  const resize = () => {
-    const ratio = Math.min(window.devicePixelRatio || 1, 1.75);
-    canvas.width = Math.floor(canvas.clientWidth * ratio);
-    canvas.height = Math.floor(canvas.clientHeight * ratio);
-    gl.viewport(0, 0, canvas.width, canvas.height);
-  };
-  const resizeObserver = new ResizeObserver(resize);
-  resizeObserver.observe(canvas);
-  resize();
-  const render = (now) => {
-    gl.uniform2f(resolution, canvas.width, canvas.height);
-    gl.uniform1f(time, now * 0.001);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-    requestAnimationFrame(render);
-  };
-  requestAnimationFrame(render);
+  try {
+    const { default: gradientGL } =
+      await import("https://unpkg.com/gradient-gl@2.0.5");
+    gradientGL("s1.eba9", "#heroShader");
+  } catch (error) {
+    console.warn(
+      "Shader do hero indisponível; mantendo o fundo original.",
+      error,
+    );
+  }
 };
-initHeroShader(heroShader);
+void initHeroShader(heroShader);
 const menuToggle = $("#menuToggle");
 menuToggle.addEventListener("click", () => {
   const open = $("#mobileMenu").classList.toggle("open");
@@ -376,6 +351,7 @@ if (!SpeechRecognition) {
     button.hidden = true;
   });
 } else {
+  // A busca por voz é opcional: navegadores sem Web Speech continuam usando a busca normal.
   const recognition = new SpeechRecognition();
   recognition.lang = "pt-BR";
   recognition.interimResults = false;
@@ -408,7 +384,10 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-// RENDERIZACAO DE CATEGORIAS E PRODUTOS
+// -----------------------------------------------------------------------------
+// 4. CATÁLOGO, CATEGORIAS, FILTROS E FAVORITOS
+// -----------------------------------------------------------------------------
+
 const categoryList = $("#categoryList");
 categoryList.innerHTML = categories
   .map(
@@ -434,9 +413,10 @@ const renderProducts = (list) => {
     `${list.length} resultado${list.length === 1 ? "" : "s"} encontrado${list.length === 1 ? "" : "s"}`;
   $("#emptyState").hidden = list.length > 0;
 };
+
+// Renderização inicial: os filtros reutilizam a mesma função depois.
 renderProducts(products);
 
-// BUSCA E FILTROS
 const filterProducts = (term) => {
   const category = categoryFilter.value.toLowerCase();
   const query = term.toLowerCase().trim();
@@ -483,8 +463,12 @@ $("#closeFilters").addEventListener("click", () => {
   $("#overlay").classList.remove("open");
 });
 
-// FAVORITOS E CARRINHO
-// Até existir uma API, localStorage simula a persistência. Depois, centralize aqui os POST/PUT/DELETE.
+// -----------------------------------------------------------------------------
+// 5. CARRINHO E CHECKOUT DEMONSTRATIVO
+// -----------------------------------------------------------------------------
+
+// Até existir uma API, localStorage simula a persistência do carrinho e favoritos.
+// A futura integração deve centralizar aqui as operações POST/PUT/DELETE.
 const saveState = () => {
   localStorage.setItem("agrifam-cart", JSON.stringify(cart));
   localStorage.setItem("agrifam-favorites", JSON.stringify(favorites));
@@ -493,10 +477,10 @@ const saveState = () => {
 const updateCounters = () => {
   $$(".cart-count").forEach(
     (element) =>
-    (element.textContent = cart.reduce(
-      (sum, item) => sum + item.quantity,
-      0,
-    )),
+      (element.textContent = cart.reduce(
+        (sum, item) => sum + item.quantity,
+        0,
+      )),
   );
   $$(".favorite-count").forEach(
     (element) => (element.textContent = favorites.length),
@@ -585,13 +569,16 @@ $("#overlay").addEventListener("click", () => {
   closeChat();
   $("#filters").classList.remove("open");
 });
-// Este evento sera o ponto de integracao com POST /api/pedidos no checkout real.
+// Ponto de integração futuro com POST /api/pedidos no checkout real.
 $("#checkoutButton").addEventListener("click", () =>
   showToast("Checkout demonstrativo pronto para integração."),
 );
 updateCounters();
 
-// PRODUTORES, MODAIS E LOGIN
+// -----------------------------------------------------------------------------
+// 6. PRODUTORES, MODAIS E AUTENTICAÇÃO
+// -----------------------------------------------------------------------------
+
 const producerGrid = $("#producerGrid");
 producerGrid.innerHTML = producers
   .map(
@@ -650,7 +637,11 @@ $("#authForm").addEventListener("submit", (event) => {
   );
 });
 
-// CHAT: substitua o estado local por GET/POST /api/conversas na integração do backend.
+// -----------------------------------------------------------------------------
+// 7. CONVERSAS
+// -----------------------------------------------------------------------------
+
+// Substitua o estado local por GET/POST /api/conversas na integração do backend.
 const chatDrawer = $("#chatDrawer");
 const chatContactsElement = $("#chatContacts");
 const chatMessages = $("#chatMessages");

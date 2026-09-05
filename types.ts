@@ -1,6 +1,6 @@
 /**
- * Contratos do dominio do AgriFam.
- * Quando o backend existir, as respostas da API devem seguir estes formatos.
+ * Contratos do domínio do AgriFam.
+ * As respostas da API devem seguir estes formatos quando o backend existir.
  */
 export interface Category {
   name: string;
