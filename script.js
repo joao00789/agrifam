@@ -4,16 +4,27 @@
  * Exemplo futuro: fetch('/api/produtos').then(response => response.json()).
  */
 const categories = [
-  { name: "Frutas", icon: "◒", count: "24 produtos" },
-  { name: "Verduras", icon: "✣", count: "18 produtos" },
-  { name: "Legumes", icon: "◓", count: "16 produtos" },
-  { name: "Grãos", icon: "▦", count: "12 produtos" },
-  { name: "Mel", icon: "⬡", count: "8 produtos" },
-  { name: "Queijos", icon: "◌", count: "9 produtos" },
-  { name: "Doces", icon: "◇", count: "14 produtos" },
-  { name: "Artesanato", icon: "✺", count: "11 produtos" },
-  { name: "Regionais", icon: "⌁", count: "21 produtos" },
+  { name: "Frutas", icon: "apple", count: "24 produtos" },
+  { name: "Verduras", icon: "leaf", count: "18 produtos" },
+  { name: "Legumes", icon: "carrot", count: "16 produtos" },
+  { name: "Grãos", icon: "wheat", count: "12 produtos" },
+  { name: "Mel", icon: "hexagon", count: "8 produtos" },
+  { name: "Queijos", icon: "cheese", count: "9 produtos" },
+  { name: "Doces", icon: "candy", count: "14 produtos" },
+  { name: "Artesanato", icon: "palette", count: "11 produtos" },
+  { name: "Regionais", icon: "map-pin", count: "21 produtos" },
 ];
+const categoryIcons = {
+  apple: '<path d="M12 20.5c-4.5 0-7-3.7-7-8.1C5 9.2 7.1 7 10 7c1.2 0 1.7.7 2 .7s.9-.7 2.4-.7c2.1 0 3.6 1.1 4.3 2.2-3.8 2.1-3.2 7.2.6 8.6-.5 1.1-1.1 2.2-1.8 3.1-1 1.4-2 2.7-3.6 2.7s-2-.9-3.7-.9-2.2.9-3.7.9-2.5-1.2-3.5-2.6Z"/><path d="M14 5.5c.7-1.1 1.8-1.8 3.2-1.9.1 1.4-.4 2.5-1.1 3.3-.8.9-2 1.6-3.2 1.5-.1-1.1.3-2.2 1.1-2.9Z"/>',
+  leaf: '<path d="M20 4C11 4 5 8 5 14c0 3 2 5 5 5 6 0 10-6 10-15Z"/><path d="M4 20c3-5 7-8 12-10"/>',
+  carrot: '<path d="m12 10 4 9a2 2 0 0 1-1.8 2.8H9.8A2 2 0 0 1 8 19l4-9Z"/><path d="M12 10c-2-2-2-4 0-6 2 2 2 4 0 6ZM9 7C7 6 6 4 7 2c2 1 3 3 2 5ZM15 7c2-1 3-3 2-5-2 1-3 3-2 5Z"/>',
+  wheat: '<path d="M12 21V5M12 8c-3 0-5-2-5-5 3 0 5 2 5 5ZM12 13c-3 0-5-2-5-5 3 0 5 2 5 5ZM12 18c-3 0-5-2-5-5 3 0 5 2 5 5ZM12 8c3 0 5-2 5-5-3 0-5 2-5 5ZM12 13c3 0 5-2 5-5-3 0-5 2-5 5ZM12 18c3 0 5-2 5-5-3 0-5 2-5 5Z"/>',
+  hexagon: '<path d="m12 3 7.8 4.5v9L12 21l-7.8-4.5v-9L12 3Z"/><path d="M8 10h8M8 14h8"/>',
+  cheese: '<path d="M4 10h16v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8Z"/><path d="M4 10c2-4 6-6 12-6l4 6M8 14h.01M14 17h.01"/>',
+  candy: '<path d="m7 8-4-2v4l4 2M17 8l4-2v4l-4 2"/><path d="M7 8h10v8H7z"/><path d="M10 8v8M14 8v8"/>',
+  palette: '<path d="M12 4a8 8 0 0 0 0 16h1.5a1.5 1.5 0 0 0 0-3H12a2 2 0 0 1 0-4h2a6 6 0 0 0 0-12Z"/><path d="M7 10h.01M9 7h.01M14 7h.01M17 10h.01"/>',
+  "map-pin": '<path d="M12 21s7-5.2 7-11a7 7 0 1 0-14 0c0 5.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2"/>',
+};
 const products = [
   {
     id: 1,
@@ -231,15 +242,15 @@ document.body.classList.add("has-scroll-reveal");
 const revealObserver =
   "IntersectionObserver" in window
     ? new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (!entry.isIntersecting) return;
-            entry.target.classList.add("is-visible");
-            revealObserver.unobserve(entry.target);
-          });
-        },
-        { threshold: 0.12, rootMargin: "0px 0px -35px" },
-      )
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-visible");
+          revealObserver.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -35px" },
+    )
     : null;
 const observeRevealItems = (context) => {
   const items = $$(".reveal-item", context);
@@ -328,7 +339,7 @@ const categoryList = $("#categoryList");
 categoryList.innerHTML = categories
   .map(
     (category) =>
-      `<button class="category reveal-item" data-category="${category.name === "Regionais" ? "regionais" : category.name}"><span class="category-icon">${category.icon}</span><strong>${category.name}</strong><small>${category.count}</small></button>`,
+      `<button class="category reveal-item" data-category="${category.name === "Regionais" ? "regionais" : category.name}"><svg class="category-icon" viewBox="0 0 24 24" aria-hidden="true">${categoryIcons[category.icon]}</svg><strong>${category.name}</strong><small>${category.count}</small></button>`,
   )
   .join("");
 observeRevealItems(categoryList);
@@ -408,10 +419,10 @@ const saveState = () => {
 const updateCounters = () => {
   $$(".cart-count").forEach(
     (element) =>
-      (element.textContent = cart.reduce(
-        (sum, item) => sum + item.quantity,
-        0,
-      )),
+    (element.textContent = cart.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    )),
   );
   $$(".favorite-count").forEach(
     (element) => (element.textContent = favorites.length),

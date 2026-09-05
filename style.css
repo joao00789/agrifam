@@ -580,8 +580,15 @@ body.has-scroll-reveal .reveal-item.is-visible {
 }
 
 .category-icon {
-  font-size: 31px;
+  display: block;
+  width: 34px;
+  height: 34px;
   color: var(--green);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .category strong {
