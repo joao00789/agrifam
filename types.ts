@@ -42,3 +42,56 @@ export interface ProductFilters {
   category: string;
   sort: SortOption;
 }
+
+/**
+ * Contratos de POST/GET /api/pedidos (ver README.md). `price` não existe no payload
+ * de criação — o backend sempre recalcula pelo preço atual do produto no banco.
+ */
+export interface CreateOrderItemInput {
+  productId: number;
+  quantity: number;
+}
+
+export interface CreateOrderInput {
+  items: CreateOrderItemInput[];
+}
+
+export interface OrderItem {
+  productId: number;
+  name: string;
+  unitPrice: number;
+  quantity: number;
+  subtotal: number;
+}
+
+export interface Order {
+  id: number;
+  status: "confirmado";
+  total: number;
+  createdAt: string;
+  items: OrderItem[];
+}
+
+/** Contratos de GET/POST /api/conversas (ver README.md). */
+export interface Message {
+  id: number;
+  senderId: number;
+  text: string;
+  createdAt: string;
+}
+
+export interface ConversationSummary {
+  id: number;
+  buyer: { id: number; name: string };
+  producer: { id: number; property: string; name: string };
+  lastMessage: { text: string; senderId: number; createdAt: string } | null;
+  createdAt: string;
+}
+
+export interface CreateConversationInput {
+  producerId: number;
+}
+
+export interface SendMessageInput {
+  text: string;
+}
