@@ -2,11 +2,16 @@
 
 Site da AgriFam, uma plataforma para aproximar consumidores da agricultura familiar.
 
+> **Sobre os produtos/produtores exibidos hoje:** o catálogo atual vem do script de seed
+> (`server/src/db/seed.ts`) e é só um exemplo visual/demonstrativo — não é o catálogo
+> real da região. Produtores de verdade vão se cadastrar e preencher isso conforme a
+> demanda local.
+
 ## Stack do frontend
 
 - **HTML5**: estrutura semântica, acessibilidade básica e pontos de montagem do conteúdo.
 - **CSS3**: layout, tokens visuais, responsividade, estados e animações.
-- **JavaScript**: comportamento da página, renderização dos dados demonstrativos e interações.
+- **JavaScript**: comportamento da página, integração com a API do backend e interações.
 - **TypeScript**: contratos de dados e base para a migração gradual do JavaScript.
 - **Swiper 11**: carrossel principal do hero.
 - **Poppins** e **Nunito Sans**: tipografia carregada pelo Google Fonts.
@@ -86,80 +91,132 @@ Para adicionar um ícone pequeno de interface, prefira reutilizar um SVG inline 
 
 ### Comportamento: `script.js`
 
+O frontend já busca dados reais do backend (`server/`, ver [API do backend](#api-do-backend)) via a função `api()` no topo do arquivo — não há mais arrays de produtos/produtores/categorias mockados.
+
 | Bloco | O que editar |
 | --- | --- |
-| `categories`, `products`, `producers` | Dados demonstrativos até a API existir |
-| `categoryIcons` | SVGs usados nos botões de categoria |
-| `chatContacts` | Conversas demonstrativas do chat |
+| `api()` e `API_BASE` | Chamada HTTP central (cookies inclusos) e URL base do backend |
+| `categoryIcons` | SVGs usados nos botões de categoria (só isso continua fixo no frontend) |
 | `$` e `$$` | Atalhos para `querySelector` e `querySelectorAll` |
-| `renderProducts()` e `productCard()` | Estrutura e conteúdo dos cards de produto |
-| `filterProducts()` | Busca, categoria e ordenação |
-| `renderCart()` e `saveState()` | Carrinho e persistência em `localStorage` |
-| `renderChat()` | Lista de contatos e mensagens |
+| `loadProducts()`, `renderProducts()`, `productCard()` | Busca (com filtros via query string), estrutura e conteúdo dos cards de produto |
+| `loadProducers()`, `renderProducers()`, `producerCard()` | Grid de produtores e conteúdo do modal de perfil |
+| `renderCart()`, `saveCart()`, `saveFavorites()` | Carrinho e favoritos — **continuam no `localStorage`** (funcionam sem login; só o checkout exige sessão) |
+| `openAuthModal()`, `setAuthMode()`, `loadSession()` | Login, cadastro (com perfil de produtor) e sessão atual |
+| `loadConversations()`, `selectConversation()`, `renderMessages()` | Chat: lista de conversas e histórico de mensagens |
 | `openModal()` e `closeModals()` | Abertura e fechamento dos modais |
 
 Os elementos são encontrados principalmente por `id`, por exemplo `$("#productGrid")`, por classe, por exemplo `$(".search-wrap input")`, e por atributos `data-*`, por exemplo `[data-cart]` e `[data-producer]`. Ao criar um novo componente interativo, adicione um seletor estável no HTML e conecte o evento no bloco correspondente do `script.js`.
 
-## Guia para integração com o backend
+## Integração com o backend
 
-Esta seção é o ponto de passagem para quem vai conectar a API. O frontend já possui os componentes visuais e os pontos de montagem; a integração deve substituir os dados demonstrativos sem mudar os seletores do HTML.
+O frontend está **100% integrado** ao backend em `server/` (Fase 5 do [TODO.md](TODO.md), concluída). Não há mais dados mockados de catálogo, autenticação ou conversas — tudo isso vem de verdade da API.
 
-### O que é mock hoje
+### O que ainda é só do navegador (por design, não é mock temporário)
 
-- `products`, `producers` e `categories` em `script.js` são dados temporários.
-- `chatContacts` contém apenas conversas demonstrativas.
-- `agrifam-cart`, `agrifam-favorites` e `agrifam-chats` são chaves do `localStorage` usadas apenas para simular persistência.
-- O login, checkout e cadastro de produtor exibem mensagens demonstrativas; ainda não enviam dados para um servidor.
+- **Carrinho** (`agrifam-cart`) e **favoritos** (`agrivam-favorites`) continuam no `localStorage`. Isso é intencional: dá para montar o carrinho e favoritar produtos sem estar logado. Só o **checkout** (`POST /api/pedidos`) exige sessão — se o usuário não estiver logado, o botão de finalizar compra abre o modal de login.
+- Não existe endpoint de favoritos no backend (fora do escopo definido) — favoritar é uma preferência só deste navegador.
 
-### Contratos esperados
+### O que rodar para desenvolver localmente
 
-Os objetos retornados pela API devem manter estes campos, que são consumidos diretamente pelos templates do frontend:
-
-```json
-{
-	"id": 1,
-	"name": "Tomate Orgânico",
-	"price": 8.9,
-	"unit": "kg",
-	"producer": "Sítio Boa Esperança",
-	"location": "Teresina - PI",
-	"category": "Verduras",
-	"rating": 4.9,
-	"image": "https://exemplo.com/imagem.jpg"
-}
-```
-
-Produtores usam os campos `id`, `name`, `property`, `location`, `specialty`, `rating`, `history` e `image`. Categorias usam `name`, `icon` e `count`. Os contratos TypeScript correspondentes estão em `types.ts`.
-
-### Endpoints e pontos de conexão
-
-| Endpoint | Uso no frontend | Ponto que deve ser substituído |
-| --- | --- | --- |
-| `GET /api/produtos` | Preencher catálogo e busca | Array `products` + `renderProducts(products)` |
-| `GET /api/produtores` | Preencher cards e perfil | Array `producers` + `producerGrid.innerHTML` |
-| `POST /api/auth` | Login e criação de sessão | Listener de `#authForm` |
-| `POST /api/pedidos` | Finalizar carrinho | Listener de `#checkoutButton` |
-| `GET /api/conversas` | Carregar contatos e mensagens | Array `chatContacts` + `renderChat()` |
-| `POST /api/conversas` | Enviar mensagem | Listener de `#chatForm` |
-
-Ao integrar, preserve os estados de carregamento, erro e vazio no HTML. O catálogo já possui `#emptyState`; podem ser adicionados elementos como `data-state="loading"` e `data-state="error"` sem trocar os IDs principais.
-
-### Fluxo recomendado de integração
-
-1. Substituir os arrays de produtos e produtores por `fetch()`.
-2. Manter `productCard()`, `renderProducts()` e os filtros recebendo os mesmos formatos.
-3. Trocar o `localStorage` do carrinho por `POST`, `PATCH` e `DELETE` autenticados.
-4. Conectar `#authForm` e guardar a sessão em cookie seguro ou mecanismo definido pelo backend.
-5. Integrar o checkout usando um provedor de marketplace com split de pagamento; o frontend não deve receber nem armazenar dados de cartão.
-6. Substituir o chat local por chamadas autenticadas e atualizar `renderChat()` após cada resposta.
+1. Backend: `cd server && npm run dev` (sobe em `http://localhost:3333`).
+2. Frontend: sirva a raiz do projeto como arquivos estáticos numa origem HTTP real — **não abra `index.html` direto como `file://`**, porque a sessão usa cookie e o backend só libera CORS para uma origem configurada (`CORS_ORIGIN` em `server/.env`, padrão `http://localhost:5173`). Qualquer servidor estático serve, por exemplo `python -m http.server 5173` a partir da raiz do repositório.
+3. `script.js` aponta para o backend via a constante `API_BASE` (`http://localhost:3333/api`) no topo do arquivo — troque isso ao publicar o backend em outro endereço (ver Fase 6 do TODO.md).
 
 ### Responsabilidade de cada lado
 
 **Frontend:** exibir dados, validar campos básicos, controlar estados visuais, enviar requisições e mostrar mensagens de sucesso ou erro.
 
-**Backend:** autenticar usuários, validar todos os dados novamente, autorizar acesso, calcular preços e frete, persistir pedidos, processar pagamentos, dividir valores entre produtores e proteger segredos.
+**Backend:** autenticar usuários, validar todos os dados novamente, autorizar acesso, calcular preços, persistir pedidos e conversas, e proteger segredos.
 
-O frontend nunca deve conter senha, token privado, chave secreta de pagamento ou regra de preço considerada confiável. Tudo que envolve dinheiro ou permissão precisa ser recalculado e validado no backend.
+O frontend nunca contém senha, token privado ou regra de preço considerada confiável — `POST /api/pedidos` sempre recalcula o preço a partir do produto no banco, ignorando o que vier do cliente.
+
+### Painel do produtor ("Meus produtos")
+
+Um produtor autenticado tem acesso a um painel para cadastrar, editar e remover seus
+próprios produtos, sem precisar chamar a API diretamente. No cabeçalho, o botão "Vender
+no AgriFam" vira **"Meus produtos"** assim que o usuário logado tem `role: "producer"`
+(ver `updateAuthUI()` em `script.js`) e abre o modal `#myProductsModal`.
+
+- O formulário cadastra (`POST /api/produtos`) ou atualiza (`PATCH /api/produtos/:id`,
+  ao clicar em "Editar" num item da lista) um produto.
+- "Remover" chama `DELETE /api/produtos/:id` (com uma confirmação nativa do navegador).
+- A lista vem de `GET /api/produtor/produtos` — um endpoint que não existia antes desta
+  tela: os outros endpoints de produto não filtram por dono, e sem ele o frontend não
+  tinha como saber com segurança quais produtos são do produtor logado (o campo
+  `producer` da resposta é só o nome da propriedade, que não é garantido único no
+  banco).
+- Depois de qualquer criação/edição/remoção, o catálogo público e as categorias são
+  recarregados (`refreshCatalogAfterChange()`), para preço e contagem não ficarem
+  desatualizados no resto do site.
+
+## API do backend
+
+O backend em `server/` (Node.js + Express + TypeScript + Drizzle/Turso) implementa
+autenticação, catálogo, pedidos e conversas (Fases 1 a 4 do [TODO.md](TODO.md)) — todas
+as fases do backend planejadas, e todas já ligadas ao frontend (Fase 5).
+
+Rodando localmente a partir de `server/` (`npm run dev`, ver [CLAUDE.md](CLAUDE.md) para
+os comandos completos), a API sobe em `http://localhost:3333` por padrão. `npm run
+db:seed` popula o catálogo com produtos/produtores/categorias de demonstração — ver a
+nota no início deste documento: são dados de exemplo, não o catálogo real da região, que
+ainda será cadastrado pelos produtores de verdade.
+
+### Autenticação
+
+| Rota | Método | Corpo (JSON) | Resposta em caso de sucesso |
+| --- | --- | --- | --- |
+| `/api/auth/register` | POST | `{ "name", "email", "password", "role": "buyer" \| "producer" }` — se `role` for `"producer"`, exige também `{ "property", "location", "specialty" }` (`"history"`/`"image"` opcionais) | `201` + `{ "user": { id, name, email, role } }`, define cookie de sessão |
+| `/api/auth` | POST | `{ "email", "password" }` | `200` + `{ "user": {...} }`, define cookie de sessão |
+| `/api/auth/logout` | POST | — | `200` + `{ "ok": true }`, limpa o cookie |
+| `/api/auth/me` | GET | — (usa o cookie de sessão) | `200` + `{ "user": {...} }`, ou `401` se não autenticado |
+
+A sessão é um JWT em cookie `httpOnly` (`agrifam_token`), válido por 7 dias.
+
+### Catálogo
+
+| Rota | Método | Corpo/Query | Resposta em caso de sucesso |
+| --- | --- | --- | --- |
+| `/api/produtos` | GET | Query: `search`, `category`, `sort` (`featured`\|`price-low`\|`rating`) | `200` + `Product[]` (mesmo formato de [types.ts](types.ts)) |
+| `/api/produtos/:id` | GET | — | `200` + `Product`, ou `404` |
+| `/api/produtos` | POST | `{ "name", "price", "unit", "location", "category", "image"?, "rating"? }` — precisa de sessão com `role: "producer"` | `201` + `Product` |
+| `/api/produtos/:id` | PATCH | Qualquer subconjunto dos campos acima — só o produtor dono do produto pode alterar | `200` + `Product`, ou `403` se não for o dono |
+| `/api/produtos/:id` | DELETE | — só o produtor dono do produto pode remover | `200` + `{ "ok": true }`, ou `403` se não for o dono |
+| `/api/produtor/produtos` | GET | — precisa de sessão com `role: "producer"` | `200` + `Product[]`, só os produtos do produtor autenticado (usado pelo painel "Meus produtos") |
+| `/api/produtores` | GET | — | `200` + `Producer[]` |
+| `/api/produtores/:id` | GET | — | `200` + `Producer`, ou `404` |
+| `/api/categorias` | GET | — | `200` + `{ id, name, icon, count }[]` — `count` é calculado a partir dos produtos reais, não é um valor fixo |
+
+### Pedidos
+
+Pedidos são **simulados nesta fase**: não há gateway de pagamento integrado ainda, todo
+pedido nasce com `status: "confirmado"`. Qualquer usuário autenticado pode comprar
+(comprador ou produtor). O preço de cada item é sempre recalculado a partir do produto
+no banco — o backend ignora qualquer preço enviado pelo cliente no corpo da requisição.
+
+| Rota | Método | Corpo (JSON) | Resposta em caso de sucesso |
+| --- | --- | --- | --- |
+| `/api/pedidos` | POST | `{ "items": [{ "productId", "quantity" }] }` (ver `CreateOrderInput` em [types.ts](types.ts)) | `201` + `Order` (ver `Order`/`OrderItem` em types.ts) |
+| `/api/pedidos` | GET | — | `200` + `Order[]`, só os pedidos do usuário autenticado |
+| `/api/pedidos/:id` | GET | — | `200` + `Order`, ou `403` se o pedido não for do usuário autenticado |
+| `/api/produtor/pedidos` | GET | — precisa de sessão com `role: "producer"` | `200` + lista de itens de pedido que incluem produtos do produtor autenticado (com `buyerName`, `productName`, `quantity`, `subtotal`, etc.) |
+
+### Conversas
+
+Uma conversa é sempre entre um comprador e um produtor (identificado pelo `producerId`
+de `GET /api/produtores`); existe no máximo uma conversa por par comprador-produtor —
+iniciar de novo com o mesmo produtor devolve a conversa já existente em vez de duplicar.
+
+| Rota | Método | Corpo (JSON) | Resposta em caso de sucesso |
+| --- | --- | --- | --- |
+| `/api/conversas` | GET | — | `200` + `ConversationSummary[]` (conversas em que o usuário autenticado participa, como comprador ou como produtor) |
+| `/api/conversas` | POST | `{ "producerId" }` | `201` + conversa nova, ou `200` + conversa já existente entre esse par |
+| `/api/conversas/:id/mensagens` | GET | — só participantes da conversa | `200` + `Message[]`, em ordem cronológica |
+| `/api/conversas/:id/mensagens` | POST | `{ "text" }` (1 a 2000 caracteres) | `201` + `Message` |
+
+Erros seguem sempre o formato `{ "error": "mensagem" }`, com os códigos HTTP `400`
+(dados inválidos, categoria/produto inexistente, produtor iniciando conversa consigo
+mesmo), `401` (sem sessão), `403` (perfil/dono errado, ou não participa da conversa) e
+`409` (email já cadastrado no registro).
 
 ## Organização dos arquivos
 
@@ -169,6 +226,9 @@ O frontend nunca deve conter senha, token privado, chave secreta de pagamento ou
 - `script.ts`: base tipada para a migração gradual do comportamento para TypeScript.
 - `types.ts`: contratos compartilhados de categorias, produtos, produtores, carrinho e filtros.
 - `asset/`: imagens e ícones locais usados pela interface.
+- `server/`: backend (Node.js + Express + TypeScript), com o próprio `package.json`,
+  testes (`src/tests`) e schema do banco (`src/db`). Ver [CLAUDE.md](CLAUDE.md) e
+  [TODO.md](TODO.md) para arquitetura, decisões e roadmap.
 
 ## Desenvolvimento
 
@@ -195,9 +255,8 @@ Os principais tokens visuais ficam no bloco `:root` de `style.css`: `--green`, `
 2. Execute `npx prettier --write index.html style.css script.js script.ts types.ts tsconfig.json` depois de editar os arquivos.
 3. Confira `git diff --check` para detectar problemas de espaços e formatação.
 
-## Próximas integrações
+## Próximos passos (fora do escopo já implementado)
 
-- Produtos: `GET /api/produtos`
-- Produtores: `GET /api/produtores`
-- Autenticação: `POST /api/auth`
-- Pedidos: `POST /api/pedidos`
+- Recuperação de senha (hoje o link só avisa que ainda não está disponível).
+- Gateway de pagamento real (checkout hoje é simulado, ver Fase 3 do TODO.md).
+- Deploy em produção (Vercel + Turso — Fase 6 do TODO.md).

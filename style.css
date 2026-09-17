@@ -1534,18 +1534,110 @@ body.has-scroll-reveal .reveal-item.is-visible {
   font-weight: 700;
 }
 
-.modal input {
+/* [hidden] tem baixa especificidade e perde para ".modal label { display: block }"
+   acima — sem isto, um <label> com o atributo hidden continuaria visível. */
+.modal [hidden] {
+  display: none !important;
+}
+
+.modal input,
+.modal select {
   display: block;
   width: 100%;
   padding: 13px;
   border: 1px solid var(--line);
   margin-top: 7px;
   outline-color: var(--green);
+  background: #fff;
 }
 
 .modal form .button {
   width: 100%;
   margin-top: 20px;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.product-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.my-products-heading {
+  margin: 32px 0 12px;
+  font-size: 15px;
+}
+
+.my-products-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.my-product-item {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 13px;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.my-product-item img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 3px;
+}
+
+.my-product-item h4 {
+  margin: 0 0 4px;
+  font: 600 15px var(--serif);
+}
+
+.my-product-item small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.my-product-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.my-product-actions button {
+  background: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.my-product-actions .my-product-delete {
+  color: #a36868;
+}
+
+.my-products-empty {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 10px 0;
+}
+
+.modal-actions .button {
+  flex: 1;
+  min-width: 160px;
+}
+
+/* .button-light foi pensada para o hero escuro; dentro do modal (fundo branco)
+   precisa de uma borda para não ficar invisível. */
+.modal-actions .button-light {
+  border: 1px solid var(--line);
 }
 
 .forgot {
@@ -1720,6 +1812,10 @@ body.has-scroll-reveal .reveal-item.is-visible {
 @media (max-width: 700px) {
 
   /* Layout mobile e filtros em painel inferior. */
+  .product-form-row {
+    grid-template-columns: 1fr;
+  }
+
   .announcement {
     justify-content: space-between;
     padding: 8px 5%;
@@ -2244,7 +2340,7 @@ body.has-scroll-reveal .reveal-item.is-visible {
   font-size: 28px;
 }
 
-.chat-role-switch {
+.mode-switch {
   display: flex;
   gap: 6px;
   margin: 25px 0 18px;
@@ -2253,7 +2349,7 @@ body.has-scroll-reveal .reveal-item.is-visible {
   width: max-content;
 }
 
-.chat-role-switch button {
+.mode-switch button {
   padding: 8px 13px;
   background: transparent;
   color: var(--muted);
@@ -2261,7 +2357,7 @@ body.has-scroll-reveal .reveal-item.is-visible {
   font-weight: 700;
 }
 
-.chat-role-switch button.active {
+.mode-switch button.active {
   background: var(--green);
   color: #fff;
 }
@@ -2442,7 +2538,7 @@ body.has-scroll-reveal .reveal-item.is-visible {
     min-height: 260px;
   }
 
-  .chat-role-switch {
+  .mode-switch {
     margin-top: 18px;
   }
 }
