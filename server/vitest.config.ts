@@ -6,7 +6,7 @@ export default defineConfig({
     include: ["src/tests/**/*.test.ts"],
     setupFiles: ["./src/tests/setup.ts"],
     env: {
-      DATABASE_URL: ":memory:",
+      DATABASE_URL: "pglite:memory",
       JWT_SECRET: "test-secret-nao-usar-em-producao",
       CORS_ORIGIN: "http://localhost:5173",
     },

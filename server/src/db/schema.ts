@@ -1,29 +1,38 @@
 import { relations, sql } from "drizzle-orm";
-import { integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import {
+  bigint,
+  bigserial,
+  check,
+  doublePrecision,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 /**
  * Fases 1, 2, 3 e 4 (Autenticação, Catálogo, Pedidos e Conversas) — todas as fases do
  * backend previstas no TODO.md. A Fase 5 é integrar o frontend a essas rotas.
  */
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const users = pgTable("users", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
   name: text("name").notNull(),
+  avatarUrl: text("avatar_url").notNull().default(""),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   role: text("role", { enum: ["buyer", "producer"] }).notNull(),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`(current_timestamp)`),
-});
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+}, (table) => [check("users_role_check", sql`${table.role} in ('buyer', 'producer')`)]);
 
 /**
  * Perfil de produtor, um por usuário com role "producer". Criado junto do cadastro
  * (ver authController.register) porque `POST /api/produtos` depende de já existir um
  * `producerId` para associar o produto.
  */
-export const producers = sqliteTable("producers", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
+export const producers = pgTable("producers", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  userId: bigint("user_id", { mode: "number" })
     .notNull()
     .unique()
     .references(() => users.id),
@@ -32,57 +41,51 @@ export const producers = sqliteTable("producers", {
   property: text("property").notNull(),
   location: text("location").notNull(),
   specialty: text("specialty").notNull(),
-  rating: real("rating").notNull().default(5),
+  rating: doublePrecision("rating").notNull().default(5),
   history: text("history").notNull().default(""),
   image: text("image").notNull().default(""),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`(current_timestamp)`),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
-export const categories = sqliteTable("categories", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const categories = pgTable("categories", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
   name: text("name").notNull().unique(),
   // Chave do ícone SVG inline usado hoje em `categoryIcons` no script.js do frontend.
   icon: text("icon").notNull(),
 });
 
-export const products = sqliteTable("products", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  producerId: integer("producer_id")
+export const products = pgTable("products", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  producerId: bigint("producer_id", { mode: "number" })
     .notNull()
     .references(() => producers.id),
-  categoryId: integer("category_id")
+  categoryId: bigint("category_id", { mode: "number" })
     .notNull()
     .references(() => categories.id),
   name: text("name").notNull(),
-  price: real("price").notNull(),
+  price: doublePrecision("price").notNull(),
   unit: text("unit").notNull(),
   location: text("location").notNull(),
-  rating: real("rating").notNull().default(5),
+  rating: doublePrecision("rating").notNull().default(5),
   image: text("image").notNull().default(""),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`(current_timestamp)`),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
 /**
  * Um pedido por checkout, de um comprador autenticado. `status` é simulado (sem
  * gateway de pagamento nesta fase, ver CLAUDE.md): todo pedido nasce "confirmado".
  */
-export const orders = sqliteTable("orders", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  buyerId: integer("buyer_id")
+export const orders = pgTable("orders", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  buyerId: bigint("buyer_id", { mode: "number" })
     .notNull()
     .references(() => users.id),
   status: text("status", { enum: ["confirmado"] })
     .notNull()
     .default("confirmado"),
-  total: real("total").notNull(),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`(current_timestamp)`),
-});
+  total: doublePrecision("total").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+}, (table) => [check("orders_status_check", sql`${table.status} = 'confirmado'`)]);
 
 /**
  * `productName`/`unitPrice` são uma cópia (snapshot) do produto no momento da compra:
@@ -90,56 +93,52 @@ export const orders = sqliteTable("orders", {
  * `producerId` é redundante com `productId -> products.producerId`, mas evita um join
  * extra para `GET /api/produtor/pedidos`.
  */
-export const orderItems = sqliteTable("order_items", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  orderId: integer("order_id")
+export const orderItems = pgTable("order_items", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  orderId: bigint("order_id", { mode: "number" })
     .notNull()
     .references(() => orders.id),
-  productId: integer("product_id")
+  productId: bigint("product_id", { mode: "number" })
     .notNull()
     .references(() => products.id),
-  producerId: integer("producer_id")
+  producerId: bigint("producer_id", { mode: "number" })
     .notNull()
     .references(() => producers.id),
   productName: text("product_name").notNull(),
-  unitPrice: real("unit_price").notNull(),
+  unitPrice: doublePrecision("unit_price").notNull(),
   quantity: integer("quantity").notNull(),
-  subtotal: real("subtotal").notNull(),
+  subtotal: doublePrecision("subtotal").notNull(),
 });
 
 /**
  * Uma conversa por par comprador-produtor (índice único evita duplicar a thread se o
  * mesmo comprador iniciar contato de novo com o mesmo produtor).
  */
-export const conversations = sqliteTable(
+export const conversations = pgTable(
   "conversations",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    buyerId: integer("buyer_id")
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    buyerId: bigint("buyer_id", { mode: "number" })
       .notNull()
       .references(() => users.id),
-    producerId: integer("producer_id")
+    producerId: bigint("producer_id", { mode: "number" })
       .notNull()
       .references(() => producers.id),
-    createdAt: text("created_at")
-      .notNull()
-      .default(sql`(current_timestamp)`),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("conversations_buyer_producer_unique").on(table.buyerId, table.producerId)],
 );
 
-export const messages = sqliteTable("messages", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  conversationId: integer("conversation_id")
+export const messages = pgTable("messages", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  conversationId: bigint("conversation_id", { mode: "number" })
     .notNull()
     .references(() => conversations.id),
-  senderId: integer("sender_id")
+  senderId: bigint("sender_id", { mode: "number" })
     .notNull()
     .references(() => users.id),
   text: text("text").notNull(),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`(current_timestamp)`),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 });
 
 export const usersRelations = relations(users, ({ one, many }) => ({

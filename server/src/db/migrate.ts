@@ -1,6 +1,15 @@
 import "dotenv/config";
-import { migrate } from "drizzle-orm/libsql/migrator";
-import { db } from "./client.js";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import * as schema from "./schema.js";
 
-await migrate(db, { migrationsFolder: "./src/db/migrations" });
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl || databaseUrl === "pglite:memory") {
+	throw new Error("DATABASE_URL do PostgreSQL precisa estar configurada para aplicar migrations.");
+}
+
+const client = postgres(databaseUrl, { ssl: "require", prepare: false });
+await migrate(drizzle(client, { schema }), { migrationsFolder: "./src/db/migrations-pg" });
+await client.end();
 console.log("Migrações aplicadas com sucesso.");
