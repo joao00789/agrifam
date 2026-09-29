@@ -4,9 +4,9 @@ Site da AgriFam, uma plataforma para aproximar consumidores da agricultura famil
 
 ## Ver esta versão no GitHub
 
-Esta atualização está publicada na branch [`codex/sync-current-project`](https://github.com/joao00789/agrifam/tree/codex/sync-current-project). Para comparar com a `main` ou abrir um pull request, acesse [comparar e criar pull request](https://github.com/joao00789/agrifam/pull/new/codex/sync-current-project). A `main` não foi alterada.
+Esta atualização está publicada na branch [`melhorias-agrifam`](https://github.com/joao00789/agrifam/tree/melhorias-agrifam). Para comparar com a `main` ou abrir um pull request, acesse [comparar e criar pull request](https://github.com/joao00789/agrifam/pull/new/melhorias-agrifam). A `main` não foi alterada.
 
-No GitHub, também é possível abrir **Branches**, selecionar `codex/sync-current-project` e navegar pelos arquivos. Os arquivos `.env` com credenciais reais não fazem parte desta branch.
+No GitHub, também é possível abrir **Branches**, selecionar `melhorias-agrifam` e navegar pelos arquivos. Os arquivos `.env` com credenciais reais não fazem parte desta branch.
 
 > **Dados de demonstração:** `server/src/db/seed.ts` contém registros de exemplo para
 > desenvolvimento. O seed é manual; nunca o execute em um banco com dados reais sem
