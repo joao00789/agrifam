@@ -20,7 +20,7 @@ backend, dados no PostgreSQL/Supabase**.
 | `server/src/controllers/` | Regras das operações de autenticação, catálogo, pedidos e conversas. |
 | `server/src/schemas/` | Validação dos dados recebidos pela API com Zod. |
 | `server/src/db/schema.ts` | Tabelas e relações do banco definidas em Drizzle. |
-| `server/src/db/migrations/` | Migrações do banco. Revise-as antes de aplicá-las em produção. |
+| `server/src/db/migrations-pg/` | Migrações PostgreSQL aplicadas por `npm run db:migrate`. Revise-as antes de executar em produção. |
 | `server/src/tests/` | Testes existentes para API e autenticação. |
 | `server/.env.example` | Lista de nomes e exemplos das variáveis locais; nunca coloque valores reais aqui. |
 
@@ -77,23 +77,29 @@ Para desenvolvimento local, siga `README.md` e use `server/.env.example` como mo
 O servidor precisa estar rodando em `http://localhost:3333`, e a página precisa ser
 servida por HTTP, não aberta como `file://`.
 
-O deploy atual é feito pelo CLI no diretório raiz, vinculado ao projeto `agri-fam2`:
+As alterações desta versão estão na branch `codex/sync-current-project` do repositório
+`joao00789/agrifam`. A `main` permanece intacta até o PR ser revisado e integrado.
+
+O deploy automático só ocorre quando o projeto correto da Vercel está conectado a este
+repositório e sua branch de produção está configurada. Confira o repositório e a branch
+em **Vercel → Project Settings → Git** antes de alterar produção. Para publicar pelo
+CLI, entre na raiz do projeto, autentique-se e vincule explicitamente o projeto certo:
 
 ```bash
+npx --yes vercel login
+npx --yes vercel link
 npx --yes vercel --prod
 ```
 
 As variáveis usadas em produção devem estar configuradas no ambiente **Production** da
-Vercel. Como este diretório não tem um repositório Git válido, o deploy pelo CLI não
-cria sincronização automática com GitHub. Antes de habilitar integração Git, confirme
-qual repositório deve ser a fonte oficial e conecte-o no painel Vercel.
+Vercel. Um deploy manual pelo CLI não configura a integração Git por si só.
 
 ## Melhorias recomendadas, em ordem
 
 1. **Credenciais:** trocar as credenciais que já foram compartilhadas fora do painel e
    atualizar Vercel e `server/.env` com os novos valores.
-2. **Fonte de deploy:** conectar um repositório GitHub oficial e confirmar que commits
-   na branch de produção criam deployments apenas no projeto `agri-fam2`.
+2. **Fonte de deploy:** confirmar que o repositório e a branch corretos estão conectados
+   ao projeto Vercel de produção, e revisar um Preview antes de integrar mudanças.
 3. **Manutenção do frontend:** migrar gradualmente `script.js` para módulos ES e separar
    `style.css` por componentes. Faça um bloco por vez para facilitar revisão e rollback.
 4. **Cobertura de interface:** criar testes de navegador para login, cadastro, upload,
