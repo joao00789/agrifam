@@ -77,7 +77,7 @@ Para desenvolvimento local, siga `README.md` e use `server/.env.example` como mo
 O servidor precisa estar rodando em `http://localhost:3333`, e a página precisa ser
 servida por HTTP, não aberta como `file://`.
 
-As alterações desta versão estão na branch `codex/sync-current-project` do repositório
+As alterações desta versão estão na branch `melhorias-agrifam` do repositório
 `joao00789/agrifam`. A `main` permanece intacta até o PR ser revisado e integrado.
 
 O deploy automático só ocorre quando o projeto correto da Vercel está conectado a este
