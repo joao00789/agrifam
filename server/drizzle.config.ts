@@ -8,10 +8,9 @@ if (!databaseUrl) {
 
 export default defineConfig({
   schema: "./src/db/schema.ts",
-  out: "./src/db/migrations",
-  dialect: "turso",
+  out: "./src/db/migrations-pg",
+  dialect: "postgresql",
   dbCredentials: {
     url: databaseUrl,
-    authToken: process.env.TURSO_AUTH_TOKEN || undefined,
   },
 });

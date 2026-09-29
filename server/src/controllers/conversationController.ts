@@ -52,11 +52,12 @@ export const listConversations = async (req: Request, res: Response) => {
   res.json(
     rows.map((row) => ({
       id: row.id,
-      buyer: { id: row.buyer.id, name: row.buyer.name },
+      buyer: { id: row.buyer.id, name: row.buyer.name, avatarUrl: row.buyer.avatarUrl },
       producer: {
         id: row.producer.id,
         property: row.producer.property,
         name: row.producer.user.name,
+        avatarUrl: row.producer.user.avatarUrl,
       },
       lastMessage: row.messages[0]
         ? {

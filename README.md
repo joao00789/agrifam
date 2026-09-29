@@ -2,10 +2,11 @@
 
 Site da AgriFam, uma plataforma para aproximar consumidores da agricultura familiar.
 
-> **Sobre os produtos/produtores exibidos hoje:** o catálogo atual vem do script de seed
-> (`server/src/db/seed.ts`) e é só um exemplo visual/demonstrativo — não é o catálogo
-> real da região. Produtores de verdade vão se cadastrar e preencher isso conforme a
-> demanda local.
+> **Dados de demonstração:** `server/src/db/seed.ts` contém registros de exemplo para
+> desenvolvimento. O seed é manual; nunca o execute em um banco com dados reais sem
+> antes revisar os registros que serão inseridos.
+
+Para saber onde editar cada parte, veja o [Guia de manutenção](docs/MANUTENCAO.md).
 
 ## Stack do frontend
 
@@ -14,7 +15,7 @@ Site da AgriFam, uma plataforma para aproximar consumidores da agricultura famil
 - **JavaScript**: comportamento da página, integração com a API do backend e interações.
 - **TypeScript**: contratos de dados e base para a migração gradual do JavaScript.
 - **Swiper 11**: carrossel principal do hero.
-- **Poppins** e **Nunito Sans**: tipografia carregada pelo Google Fonts.
+- **DM Sans** e **Nunito Sans**: tipografia carregada pelo Google Fonts.
 
 O navegador usa `script.js` diretamente. O `script.ts` ainda é uma base tipada separada e não é carregado pelo `index.html`.
 
@@ -24,7 +25,7 @@ Os recursos externos usados atualmente estão concentrados no `index.html` e nas
 
 | Recurso | Local de uso | Origem |
 | --- | --- | --- |
-| Poppins e Nunito Sans | Títulos, textos e controles | [Google Fonts](https://fonts.google.com/) carregado no `<head>` |
+| DM Sans e Nunito Sans | Títulos, textos e controles | [Google Fonts](https://fonts.google.com/) carregado no `<head>` |
 | Swiper 11 | Carrossel `.hero` | [jsDelivr](https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js) |
 | Imagens de produtos e produtores | Cards do catálogo e produtores | [Unsplash](https://unsplash.com/) por URL em `script.js` |
 | Shader do hero | Canvas `#heroShader` | Pacote `gradient-gl@2.0.5` via [unpkg](https://unpkg.com/gradient-gl@2.0.5) |
@@ -91,7 +92,9 @@ Para adicionar um ícone pequeno de interface, prefira reutilizar um SVG inline 
 
 ### Comportamento: `script.js`
 
-O frontend já busca dados reais do backend (`server/`, ver [API do backend](#api-do-backend)) via a função `api()` no topo do arquivo — não há mais arrays de produtos/produtores/categorias mockados.
+O frontend busca catálogo, autenticação e conversas da API (`server/`) pela função
+`api()` no topo do arquivo. O `server/src/db/seed.ts` serve apenas para popular um banco
+de desenvolvimento vazio com dados de exemplo.
 
 | Bloco | O que editar |
 | --- | --- |
@@ -109,18 +112,24 @@ Os elementos são encontrados principalmente por `id`, por exemplo `$("#productG
 
 ## Integração com o backend
 
-O frontend está **100% integrado** ao backend em `server/` (Fase 5 do [TODO.md](TODO.md), concluída). Não há mais dados mockados de catálogo, autenticação ou conversas — tudo isso vem de verdade da API.
+As principais operações do frontend usam o backend em `server/`. Algumas preferências,
+como carrinho e favoritos, continuam locais ao navegador; o checkout não processa
+pagamentos reais.
 
 ### O que ainda é só do navegador (por design, não é mock temporário)
 
-- **Carrinho** (`agrifam-cart`) e **favoritos** (`agrivam-favorites`) continuam no `localStorage`. Isso é intencional: dá para montar o carrinho e favoritar produtos sem estar logado. Só o **checkout** (`POST /api/pedidos`) exige sessão — se o usuário não estiver logado, o botão de finalizar compra abre o modal de login.
-- Não existe endpoint de favoritos no backend (fora do escopo definido) — favoritar é uma preferência só deste navegador.
+- **Carrinho** (`agrifam-cart`) e **favoritos** (`agrifam-favorites`) continuam no `localStorage`, disponíveis no botão do coração no cabeçalho (e no menu mobile). As listas são específicas deste navegador.
+- Perfil pessoal, troca de senha com a senha atual, perfil da loja, catálogo e pedidos usam a API e o banco.
 
 ### O que rodar para desenvolver localmente
 
-1. Backend: `cd server && npm run dev` (sobe em `http://localhost:3333`).
-2. Frontend: sirva a raiz do projeto como arquivos estáticos numa origem HTTP real — **não abra `index.html` direto como `file://`**, porque a sessão usa cookie e o backend só libera CORS para uma origem configurada (`CORS_ORIGIN` em `server/.env`, padrão `http://localhost:5173`). Qualquer servidor estático serve, por exemplo `python -m http.server 5173` a partir da raiz do repositório.
-3. `script.js` aponta para o backend via a constante `API_BASE` (`http://localhost:3333/api`) no topo do arquivo — troque isso ao publicar o backend em outro endereço (ver Fase 6 do TODO.md).
+1. Na primeira execução, crie `server/.env` copiando `server/.env.example` e instale as dependências com `cd server && npm ci`.
+2. Aplique as migrações com `npm run db:migrate` dentro de `server/`. Para preencher um banco de demonstração vazio, rode `npm run db:seed` (não use seed em banco com dados reais).
+3. Inicie o backend em `server/` com `npm start` (ou `npm run dev`) e mantenha o terminal aberto. A API fica em `http://localhost:3333`.
+4. Sirva a raiz do projeto por HTTP — não abra `index.html` como `file://`. Por exemplo, na raiz rode `python3 -m http.server 5173`; abra `http://localhost:5173`.
+5. Para login Google, configure `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` no `server/.env`. No Supabase, ative o provedor Google e informe o Client ID/Secret do Google. No Google Cloud, cadastre como URI de redirecionamento a URL de callback mostrada pelo Supabase em Authentication > Providers > Google. Em Authentication > URL Configuration, permita `http://localhost:5173/**` e `http://127.0.0.1:5173/**`. O botão de login usa OAuth com PKCE e o backend valida o token antes de criar a sessão local.
+6. Para upload de imagens, configure `SUPABASE_SECRET_KEY` apenas no backend e crie um bucket público (padrão `agrifam-images`, ou defina `SUPABASE_STORAGE_BUCKET`). Nunca exponha a secret/service role key no frontend.
+7. Em desenvolvimento local, `script.js` usa automaticamente o mesmo host do site (`localhost` ou `127.0.0.1`) para a API em `:3333`. Ao publicar com a API em outro endereço, defina `window.AGRIFAM_API_BASE` antes de carregar `script.js` (por exemplo, `https://api.seudominio.com/api`) e configure o CORS do servidor para o domínio do site.
 
 ### Responsabilidade de cada lado
 
@@ -151,15 +160,15 @@ no AgriFam" vira **"Meus produtos"** assim que o usuário logado tem `role: "pro
 
 ## API do backend
 
-O backend em `server/` (Node.js + Express + TypeScript + Drizzle/Turso) implementa
-autenticação, catálogo, pedidos e conversas (Fases 1 a 4 do [TODO.md](TODO.md)) — todas
-as fases do backend planejadas, e todas já ligadas ao frontend (Fase 5).
+O backend em `server/` usa Node.js, Express, TypeScript, Drizzle e PostgreSQL no Supabase.
+As rotas organizam autenticação, catálogo, pedidos, uploads e conversas.
 
-Rodando localmente a partir de `server/` (`npm run dev`, ver [CLAUDE.md](CLAUDE.md) para
-os comandos completos), a API sobe em `http://localhost:3333` por padrão. `npm run
-db:seed` popula o catálogo com produtos/produtores/categorias de demonstração — ver a
-nota no início deste documento: são dados de exemplo, não o catálogo real da região, que
-ainda será cadastrado pelos produtores de verdade.
+Configure `server/.env` usando `server/.env.example` e a URI PostgreSQL em Supabase >
+Connect. Rode `cd server && npm ci && npm run dev`; a API sobe em
+`http://localhost:3333` e usa o schema PostgreSQL preparado em `server/supabase-schema.sql`.
+O servidor não aplica migrations nem insere seed ao iniciar, para não alterar seu banco
+remoto automaticamente. `npm run db:seed` é uma ação manual e só deve ser executada
+quando você realmente quiser os dados de demonstração.
 
 ### Autenticação
 
@@ -222,28 +231,30 @@ mesmo), `401` (sem sessão), `403` (perfil/dono errado, ou não participa da con
 
 - `index.html`: estrutura semântica, navegação, seções, modais e pontos de montagem dinâmicos.
 - `style.css`: tokens visuais, componentes, estados de interação, mapa, conversas e responsividade. As seções estão numeradas no início do arquivo.
-- `script.js`: comportamento executado no navegador, dados demonstrativos, busca, filtros, carrinho, chat, modais e carrossel.
+- `script.js`: comportamento executado no navegador: busca, filtros, carrinho, chat, modais e carrossel.
 - `script.ts`: base tipada para a migração gradual do comportamento para TypeScript.
 - `types.ts`: contratos compartilhados de categorias, produtos, produtores, carrinho e filtros.
 - `asset/`: imagens e ícones locais usados pela interface.
 - `server/`: backend (Node.js + Express + TypeScript), com o próprio `package.json`,
-  testes (`src/tests`) e schema do banco (`src/db`). Ver [CLAUDE.md](CLAUDE.md) e
-  [TODO.md](TODO.md) para arquitetura, decisões e roadmap.
+  testes (`src/tests`), validações (`src/schemas`) e schema do banco (`src/db`).
+- `docs/MANUTENCAO.md`: mapa do código, orientações para mudanças comuns e melhorias pendentes.
 
 ## Desenvolvimento
 
-Instale as dependências e valide o TypeScript:
+Instale as dependências, compile o backend e execute os testes de API:
 
 ```bash
 npm install
 npm run check
-npm run build
+npm ci --prefix server
+npm run build --prefix server
+npm test --prefix server
 ```
 
 ## Tipografia e estilos
 
-- **Poppins**: títulos, chamadas e elementos de destaque.
-- **Nunito Sans**: textos, navegação e controles, priorizando leitura confortável.
+- **DM Sans**: títulos e elementos de destaque.
+- **Nunito Sans**: textos, navegação e controles.
 
 As fontes são carregadas no `<head>` de `index.html` e expostas pelos tokens `--display` e `--sans` no `style.css`.
 
@@ -255,8 +266,11 @@ Os principais tokens visuais ficam no bloco `:root` de `style.css`: `--green`, `
 2. Execute `npx prettier --write index.html style.css script.js script.ts types.ts tsconfig.json` depois de editar os arquivos.
 3. Confira `git diff --check` para detectar problemas de espaços e formatação.
 
-## Próximos passos (fora do escopo já implementado)
+## Próximos passos
 
 - Recuperação de senha (hoje o link só avisa que ainda não está disponível).
-- Gateway de pagamento real (checkout hoje é simulado, ver Fase 3 do TODO.md).
-- Deploy em produção (Vercel + Turso — Fase 6 do TODO.md).
+- Gateway de pagamento real e regras de estoque (o checkout ainda não cobra pagamentos).
+- Integração contínua com o repositório GitHub oficial e cobertura de testes de interface.
+- Rotina documentada de backup e restauração do banco.
+
+Veja prioridades e orientações no [Guia de manutenção](docs/MANUTENCAO.md).

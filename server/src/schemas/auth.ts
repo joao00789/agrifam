@@ -53,6 +53,19 @@ export const loginSchema = z.object({
   }),
 });
 
+export const profileUpdateSchema = z.object({
+  name: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres."),
+  email: z.string().trim().toLowerCase().email("Email inválido."),
+  avatarUrl: z.string().trim().max(2048).optional(),
+  property: z.string().trim().min(2).optional(),
+  location: z.string().trim().min(2).optional(),
+  specialty: z.string().trim().min(2).optional(),
+  history: z.string().trim().max(2000).optional(),
+  image: z.string().trim().max(2048).optional(),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().min(8, "A nova senha deve ter pelo menos 8 caracteres.").optional(),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type ProducerProfileInput = z.infer<typeof producerProfileSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

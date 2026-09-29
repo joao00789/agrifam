@@ -19,7 +19,12 @@
 // 1. API, ESTADO LOCAL E UTILITÁRIOS COMPARTILHADOS
 // -----------------------------------------------------------------------------
 
-const API_BASE = "http://localhost:3333/api";
+// Use the same hostname as the frontend during local development. Mixing
+// localhost and 127.0.0.1 can make browsers reject the cross-site session cookie.
+const localHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const API_BASE = window.AGRIFAM_API_BASE || (localHost
+  ? `http://${window.location.hostname}:3333/api`
+  : "/api");
 
 const api = async (path, options = {}) => {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -61,17 +66,31 @@ let currentUser = null;
 let categories = [];
 let products = [];
 let activeProducts = [];
+let favoriteProducts = [];
 let producers = [];
 let cart = JSON.parse(localStorage.getItem("agrifam-cart") || "[]");
 let favorites = JSON.parse(localStorage.getItem("agrifam-favorites") || "[]");
 let conversations = [];
 let activeConversationId = null;
 let authMode = "login";
+let googleAuthEnabled = false;
+let googleAuthClient = null;
 
 const $ = (selector, context = document) => context.querySelector(selector);
 const $$ = (selector, context = document) => [
   ...context.querySelectorAll(selector),
 ];
+const escapeHTML = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+})[char]);
+const safeImageURL = (value) => {
+  try {
+    const url = new URL(String(value || "asset/imagens/logo 2.png"), window.location.origin);
+    return ["http:", "https:"].includes(url.protocol) ? escapeHTML(url.href) : "asset/imagens/logo 2.png";
+  } catch {
+    return "asset/imagens/logo 2.png";
+  }
+};
 const money = (value) =>
   Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const showToast = (message) => {
@@ -109,19 +128,19 @@ const observeRevealItems = (context) => {
 // 2. NAVEGAÇÃO, BUSCA E CARROSSEL
 // -----------------------------------------------------------------------------
 
-const swiper = new Swiper(".hero", {
-  loop: true,
-  autoplay: { delay: 5500, disableOnInteraction: false },
-  pagination: { el: ".swiper-pagination", clickable: true },
-  navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
-  keyboard: { enabled: true },
-  touchRatio: 1,
-});
-
 const heroShader = document.querySelector("#heroShader");
 const prefersReducedMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 ).matches;
+if (window.Swiper && document.documentElement.dataset.page === "inicio") {
+  new window.Swiper(".hero", {
+    loop: true,
+    autoplay: prefersReducedMotion ? false : { delay: 5500, disableOnInteraction: false },
+    pagination: { el: ".swiper-pagination", clickable: false },
+    keyboard: { enabled: true },
+    touchRatio: 1,
+  });
+}
 const initHeroShader = async (canvas) => {
   if (!canvas || prefersReducedMotion) return;
   try {
@@ -137,19 +156,34 @@ const initHeroShader = async (canvas) => {
 };
 void initHeroShader(heroShader);
 const menuToggle = $("#menuToggle");
+const mobileMenu = $("#mobileMenu");
+const setMobileMenu = (open) => {
+  mobileMenu.classList.toggle("open", open);
+  mobileMenu.setAttribute("aria-hidden", String(!open));
+  mobileMenu.inert = !open;
+  menuToggle.setAttribute("aria-expanded", String(open));
+  menuToggle.setAttribute("aria-label", open ? "Fechar menu" : "Abrir menu");
+  menuToggle.classList.toggle("is-open", open);
+};
 menuToggle.addEventListener("click", () => {
-  const open = $("#mobileMenu").classList.toggle("open");
-  menuToggle.setAttribute("aria-expanded", open);
-  menuToggle.innerHTML = `<img src="asset/icons/menu hamburger ${open ? "close" : "open"}.png" alt="">`;
+  setMobileMenu(menuToggle.getAttribute("aria-expanded") !== "true");
 });
 $$(".mobile-menu a").forEach((link) =>
-  link.addEventListener("click", () => {
-    $("#mobileMenu").classList.remove("open");
-    menuToggle.setAttribute("aria-expanded", "false");
-    menuToggle.innerHTML =
-      '<img src="asset/icons/menu hamburger open.png" alt="">';
-  }),
+  link.addEventListener("click", () => setMobileMenu(false)),
 );
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && menuToggle.getAttribute("aria-expanded") === "true") {
+    setMobileMenu(false);
+    menuToggle.focus();
+  }
+});
+document.addEventListener("click", (event) => {
+  if (
+    menuToggle.getAttribute("aria-expanded") === "true" &&
+    !mobileMenu.contains(event.target) &&
+    !menuToggle.contains(event.target)
+  ) setMobileMenu(false);
+});
 let searchDebounce;
 $$(".search-wrap input").forEach((input) =>
   input.addEventListener("input", (event) => {
@@ -211,19 +245,21 @@ const categoryList = $("#categoryList");
 const categoryFilter = $("#categoryFilter");
 
 const renderCategories = () => {
+  // API data is untrusted text: escape labels/attributes and only use SVG paths
+  // from the local icon map. Keep these cards out of the scroll-reveal animation
+  // so the category row doesn't jump as it enters the viewport.
   categoryList.innerHTML = categories
     .map(
       // "Regionais" funciona como atalho para "ver tudo": não filtra por categoria.
       (category) =>
-        `<button class="category reveal-item" data-category="${category.name === "Regionais" ? "" : category.name}"><svg class="category-icon" viewBox="0 0 24 24" aria-hidden="true">${categoryIcons[category.icon] || ""}</svg><strong>${category.name}</strong><small>${category.count}</small></button>`,
+        `<button class="category" type="button" data-category="${category.name === "Regionais" ? "" : escapeHTML(category.name)}" aria-pressed="false"><span class="category-symbol"><svg class="category-icon" viewBox="0 0 24 24" aria-hidden="true">${categoryIcons[category.icon] || ""}</svg></span><span class="category-copy"><strong>${escapeHTML(category.name)}</strong><small>${Number(category.count) || 0} produtos</small></span><svg class="category-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></button>`,
     )
     .join("");
-  observeRevealItems(categoryList);
 
   categoryFilter.innerHTML =
     '<option value="">Todas as categorias</option>' +
     categories
-      .map((category) => `<option value="${category.name}">${category.name}</option>`)
+      .map((category) => `<option value="${escapeHTML(category.name)}">${escapeHTML(category.name)}</option>`)
       .join("");
 };
 
@@ -238,7 +274,22 @@ const loadCategories = async () => {
 
 const isFavorite = (id) => favorites.includes(id);
 const productCard = (product) =>
-  `<article class="product-card reveal-item"><div class="product-image"><img src="${product.image}" alt="${product.name}" loading="lazy"><button class="favorite-button ${isFavorite(product.id) ? "active" : ""}" data-favorite="${product.id}" aria-label="${isFavorite(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12.572 12 20l-7.5-7.428A5 5 0 1 1 12 6.006a5 5 0 1 1 7.5 6.566" /></svg></button></div><div class="product-info"><h3>${product.name}</h3><div class="product-meta"><span>${product.producer}</span><span>${product.location}</span></div><div class="rating">★★★★★ <span>${product.rating}</span></div><div class="product-bottom"><span class="price">${money(product.price)} <small>/ ${product.unit}</small></span><button class="add-cart" data-cart="${product.id}" aria-label="Adicionar ${product.name} ao carrinho"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-7-7h14" /></svg></button></div></div></article>`;
+  `<article class="product-card reveal-item"><div class="product-image"><img src="${safeImageURL(product.image)}" alt="${escapeHTML(product.name)}" loading="lazy"><button class="favorite-button ${isFavorite(product.id) ? "active" : ""}" data-favorite="${Number(product.id)}" aria-label="${isFavorite(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12.572 12 20l-7.5-7.428A5 5 0 1 1 12 6.006a5 5 0 1 1 7.5 6.566" /></svg></button></div><div class="product-info"><h3>${escapeHTML(product.name)}</h3><div class="product-meta"><span>${escapeHTML(product.producer)}</span><span>${escapeHTML(product.location)}</span></div><div class="rating">★★★★★ <span>${Number(product.rating) || 0}</span></div><div class="product-bottom"><span class="price">${money(product.price)} <small>/ ${escapeHTML(product.unit)}</small></span><button class="add-cart" data-cart="${Number(product.id)}" aria-label="Adicionar ${escapeHTML(product.name)} ao carrinho"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-7-7h14" /></svg></button></div></div></article>`;
+
+const renderFavorites = () => {
+  const saved = favoriteProducts.filter((product) => isFavorite(product.id));
+  $("#favoritesGrid").innerHTML = saved.map(productCard).join("");
+  $("#favoritesEmpty").hidden = saved.length > 0;
+};
+const openFavorites = async () => {
+  openModal($("#favoritesModal"));
+  try {
+    favoriteProducts = await api("/produtos?sort=featured");
+    renderFavorites();
+  } catch (error) {
+    showToast(error.message);
+  }
+};
 const renderProducts = (list) => {
   activeProducts = list;
   $("#productGrid").innerHTML = list.map(productCard).join("");
@@ -267,14 +318,30 @@ const loadProducts = async () => {
 categoryList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-category]");
   if (!button) return;
+  $$(".category", categoryList).forEach((item) => {
+    const selected = item === button;
+    item.classList.toggle("is-selected", selected);
+    item.setAttribute("aria-pressed", String(selected));
+  });
   categoryFilter.value = button.dataset.category;
   loadProducts();
   document.querySelector("#produtos").scrollIntoView({ behavior: "smooth" });
 });
-categoryFilter.addEventListener("change", loadProducts);
+categoryFilter.addEventListener("change", () => {
+  $$(".category", categoryList).forEach((item) => {
+    const selected = item.dataset.category === categoryFilter.value;
+    item.classList.toggle("is-selected", selected);
+    item.setAttribute("aria-pressed", String(selected));
+  });
+  loadProducts();
+});
 $("#sortFilter").addEventListener("change", loadProducts);
 $("#clearFilters").addEventListener("click", () => {
   categoryFilter.value = "";
+  $$(".category", categoryList).forEach((item) => {
+    item.classList.remove("is-selected");
+    item.setAttribute("aria-pressed", "false");
+  });
   $("#sortFilter").value = "featured";
   $("#searchInput").value = "";
   $("#mobileSearchInput").value = "";
@@ -331,7 +398,7 @@ const renderCart = () => {
     items.innerHTML = cart
       .map(
         (item) =>
-          `<div class="cart-item"><img src="${item.image}" alt=""><div><h4>${item.name}</h4><small>${money(item.price)} / ${item.unit}</small><div class="qty-controls"><button data-quantity="${item.id}" data-change="-1">−</button><span>${item.quantity}</span><button data-quantity="${item.id}" data-change="1">+</button></div><button class="remove-item" data-remove="${item.id}">Remover</button></div><strong class="cart-item-price">${money(item.price * item.quantity)}</strong></div>`,
+          `<div class="cart-item"><img src="${safeImageURL(item.image)}" alt=""><div><h4>${escapeHTML(item.name)}</h4><small>${money(item.price)} / ${escapeHTML(item.unit)}</small><div class="qty-controls"><button data-quantity="${Number(item.id)}" data-change="-1">−</button><span>${Number(item.quantity)}</span><button data-quantity="${Number(item.id)}" data-change="1">+</button></div><button class="remove-item" data-remove="${Number(item.id)}">Remover</button></div><strong class="cart-item-price">${money(item.price * item.quantity)}</strong></div>`,
       )
       .join("");
   }
@@ -352,9 +419,16 @@ const closeCart = () => {
   $("#overlay").classList.remove("open");
 };
 document.addEventListener("click", (event) => {
+  const favoritesLink = event.target.closest("[data-open-favorites]");
+  if (favoritesLink) {
+    event.preventDefault();
+    $("#mobileMenu").classList.remove("open");
+    openFavorites();
+    return;
+  }
   const cartButton = event.target.closest("[data-cart]");
   if (cartButton) {
-    const product = activeProducts.find(
+    const product = [...activeProducts, ...favoriteProducts, ...products].find(
       (item) => item.id === Number(cartButton.dataset.cart),
     );
     if (product) {
@@ -373,6 +447,7 @@ document.addEventListener("click", (event) => {
       : [...favorites, id];
     saveFavorites();
     renderProducts(activeProducts);
+    renderFavorites();
     showToast(
       isFavorite(id)
         ? "Produto salvo nos favoritos"
@@ -398,6 +473,7 @@ document.addEventListener("click", (event) => {
     renderCart();
   }
 });
+$$('[data-action="favorites"]').forEach((button) => button.addEventListener("click", openFavorites));
 $$('[data-action="cart"]').forEach((button) =>
   button.addEventListener("click", openCart),
 );
@@ -443,7 +519,7 @@ updateCounters();
 const producerGrid = $("#producerGrid");
 
 const producerCard = (producer) =>
-  `<article class="producer-card reveal-item"><div class="producer-photo"><img src="${producer.image}" alt="${producer.name}" loading="lazy"></div><div class="producer-info"><h3>${producer.name}</h3><p>${producer.property} · ${producer.location}</p><span class="producer-specialty">${producer.specialty} · ★ ${producer.rating}</span><button class="text-link" data-producer="${producer.id}">Ver perfil <span>→</span></button></div></article>`;
+  `<article class="producer-card reveal-item"><div class="producer-photo"><img src="${safeImageURL(producer.image)}" alt="${escapeHTML(producer.name)}" loading="lazy"></div><div class="producer-info"><h3>${escapeHTML(producer.name)}</h3><p>${escapeHTML(producer.property)} · ${escapeHTML(producer.location)}</p><span class="producer-specialty">${escapeHTML(producer.specialty)} · ★ ${Number(producer.rating) || 0}</span><button class="text-link" data-producer="${Number(producer.id)}">Ver perfil <span>→</span></button></div></article>`;
 
 const renderProducers = () => {
   producerGrid.innerHTML = producers.map(producerCard).join("");
@@ -479,7 +555,7 @@ producerGrid.addEventListener("click", (event) => {
   if (!producer) return;
   const productCount = products.filter((item) => item.producer === producer.property).length;
   $("#producerModalContent").innerHTML =
-    `<img class="modal-producer-image" src="${producer.image}" alt="${producer.name}"><p class="eyebrow">Produtor AgriFam</p><h2 id="producerModalTitle">${producer.name}</h2><p class="modal-subtitle">${producer.property} · ${producer.location} · ★ ${producer.rating}</p><p>${producer.history || "Este produtor ainda não contou sua história."}</p><div class="modal-detail"><span>Especialidade</span><strong>${producer.specialty}</strong><small>${productCount} produto${productCount === 1 ? "" : "s"} ${productCount === 1 ? "disponível" : "disponíveis"}</small></div><div class="modal-actions"><a href="#produtos" class="button button-green" data-close-modal>Ver produtos <span>→</span></a><button class="button button-light" type="button" data-message-producer="${producer.id}">Enviar mensagem</button></div>`;
+    `<img class="modal-producer-image" src="${safeImageURL(producer.image)}" alt="${escapeHTML(producer.name)}"><p class="eyebrow">Produtor AgriFam</p><h2 id="producerModalTitle">${escapeHTML(producer.name)}</h2><p class="modal-subtitle">${escapeHTML(producer.property)} · ${escapeHTML(producer.location)} · ★ ${Number(producer.rating) || 0}</p><p>${escapeHTML(producer.history || "Este produtor ainda não contou sua história.")}</p><div class="modal-detail"><span>Especialidade</span><strong>${escapeHTML(producer.specialty)}</strong><small>${productCount} produto${productCount === 1 ? "" : "s"} ${productCount === 1 ? "disponível" : "disponíveis"}</small></div><div class="modal-actions"><a href="?page=produtos#produtos" class="button button-green" data-close-modal>Ver produtos <span>→</span></a><button class="button button-light" type="button" data-message-producer="${Number(producer.id)}">Enviar mensagem</button></div>`;
   openModal($("#producerModal"));
 });
 $$("[data-training]").forEach((button) =>
@@ -529,17 +605,19 @@ const updateAuthUI = () => {
     // Só "Sair" (sem o nome): um nome longo quebra o layout do menu do cabeçalho.
     link.textContent = currentUser ? "Sair" : "Entrar";
   });
+  $("#profileLink").hidden = !currentUser;
+  $("#profileLinkMobile").hidden = !currentUser;
 
   const isProducer = currentUser?.role === "producer";
   const sellerCta = $("#sellerCta");
   if (sellerCta) {
     sellerCta.innerHTML = isProducer ? "Meus produtos" : 'Vender no AgriFam <span>↗</span>';
-    sellerCta.href = isProducer ? "#meus-produtos" : "#seja-produtor";
+    sellerCta.href = isProducer ? "#meus-produtos" : "?page=produtores#seja-produtor";
   }
   const sellerCtaMobile = $("#sellerCtaMobile");
   if (sellerCtaMobile) {
     sellerCtaMobile.textContent = isProducer ? "Meus produtos" : "Seja um produtor";
-    sellerCtaMobile.href = isProducer ? "#meus-produtos" : "#seja-produtor";
+    sellerCtaMobile.href = isProducer ? "#meus-produtos" : "?page=produtores#seja-produtor";
   }
 };
 
@@ -583,6 +661,8 @@ const setAuthMode = (mode) => {
   if (mode !== "register") {
     $("#authRole").value = "buyer";
   }
+  $("#authGoogleDivider").hidden = !googleAuthEnabled;
+  $("#googleAuthButton").hidden = !googleAuthEnabled;
   toggleProducerFields();
 };
 
@@ -600,6 +680,11 @@ $("#authModal").addEventListener("click", (event) => {
   setAuthMode(trigger.dataset.authMode);
 });
 $("#authRole").addEventListener("change", toggleProducerFields);
+$("#googleAuthButton").addEventListener("click", () => {
+  // Start OAuth on the backend so the flow still works if the Supabase CDN
+  // client is unavailable in the browser.
+  window.location.assign(`${API_BASE}/auth/google`);
+});
 $("#authForgot").addEventListener("click", (event) => {
   event.preventDefault();
   showToast("Recuperação de senha ainda não está disponível.");
@@ -663,6 +748,211 @@ $("#authForm").addEventListener("submit", async (event) => {
   }
 });
 
+const uploadImage = async (file, kind) => {
+  if (!file) return "";
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    throw new Error("Escolha uma imagem PNG, JPG ou WebP.");
+  }
+  if (file.size > 3 * 1024 * 1024) throw new Error("A imagem deve ter no máximo 3 MB.");
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Não foi possível ler a imagem."));
+    reader.readAsDataURL(file);
+  });
+  const endpoint = kind === "profile" ? "/perfil/imagem" : "/produtor/imagens";
+  const result = await api(endpoint, {
+    method: "POST",
+    body: JSON.stringify({ dataUrl, kind }),
+  });
+  return result.image;
+};
+
+let profileAvatarPreviewUrl = null;
+let clearProfileAvatar = false;
+
+const renderProfileAvatarPreview = (imageUrl, name) => {
+  const preview = $("#profileAvatarPreview");
+  const initial = escapeHTML((name || "A").trim().charAt(0).toLocaleUpperCase("pt-BR"));
+  preview.innerHTML = imageUrl
+    ? `<img src="${escapeHTML(imageUrl)}" alt="" />`
+    : `<span>${initial}</span>`;
+};
+
+const releaseProfileAvatarPreview = () => {
+  if (profileAvatarPreviewUrl) URL.revokeObjectURL(profileAvatarPreviewUrl);
+  profileAvatarPreviewUrl = null;
+};
+
+$("#profileAvatarFile").addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    event.target.value = "";
+    showToast("Escolha uma imagem PNG, JPG ou WebP.");
+    return;
+  }
+  if (file.size > 3 * 1024 * 1024) {
+    event.target.value = "";
+    showToast("A imagem deve ter no máximo 3 MB.");
+    return;
+  }
+  releaseProfileAvatarPreview();
+  profileAvatarPreviewUrl = URL.createObjectURL(file);
+  clearProfileAvatar = false;
+  renderProfileAvatarPreview(profileAvatarPreviewUrl, currentUser?.name);
+});
+
+$("#profileAvatarRemove").addEventListener("click", () => {
+  $("#profileAvatarFile").value = "";
+  releaseProfileAvatarPreview();
+  clearProfileAvatar = true;
+  renderProfileAvatarPreview("", currentUser?.name);
+});
+
+const openProfile = async () => {
+  try {
+    const data = await api("/auth/me");
+    currentUser = data.user;
+    $("#profileName").value = data.user.name;
+    $("#profileEmail").value = data.user.email;
+    $("#profileAvatarFile").value = "";
+    clearProfileAvatar = false;
+    releaseProfileAvatarPreview();
+    renderProfileAvatarPreview(data.user.avatarUrl || "", data.user.name);
+    const producer = data.producer;
+    $("#profileStoreFields").hidden = !producer;
+    if (producer) {
+      $("#profileProperty").value = producer.property;
+      $("#profileLocation").value = producer.location;
+      $("#profileSpecialty").value = producer.specialty;
+      $("#profileHistory").value = producer.history || "";
+      $("#profileStoreImage").value = producer.image || "";
+      $("#profileStoreImageFile").value = "";
+    }
+    openModal($("#profileModal"));
+  } catch (error) {
+    showToast(error.message);
+  }
+};
+
+document.addEventListener("click", (event) => {
+  const link = event.target.closest('[href="#perfil"]');
+  if (!link) return;
+  event.preventDefault();
+  openProfile();
+});
+
+$("#profileForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const payload = {
+    name: $("#profileName").value.trim(),
+    email: $("#profileEmail").value.trim(),
+  };
+  const currentPassword = $("#profileCurrentPassword").value;
+  const newPassword = $("#profileNewPassword").value;
+  if (currentPassword || newPassword) {
+    payload.currentPassword = currentPassword;
+    payload.newPassword = newPassword;
+  }
+  if (!$("#profileStoreFields").hidden) {
+    payload.property = $("#profileProperty").value.trim();
+    payload.location = $("#profileLocation").value.trim();
+    payload.specialty = $("#profileSpecialty").value.trim();
+    payload.history = $("#profileHistory").value.trim();
+    payload.image = $("#profileStoreImage").value.trim();
+  }
+  try {
+    const avatarFile = $("#profileAvatarFile").files[0];
+    if (avatarFile) {
+      payload.avatarUrl = await uploadImage(avatarFile, "profile");
+    } else if (clearProfileAvatar) {
+      payload.avatarUrl = "";
+    }
+    const storeFile = $("#profileStoreImageFile").files[0];
+    if (storeFile) payload.image = await uploadImage(storeFile, "store");
+    const data = await api("/auth/me", { method: "PATCH", body: JSON.stringify(payload) });
+    currentUser = data.user;
+    clearProfileAvatar = false;
+    releaseProfileAvatarPreview();
+    $("#profileCurrentPassword").value = "";
+    $("#profileNewPassword").value = "";
+    updateAuthUI();
+    closeModals();
+    await loadProducers();
+    showToast("Perfil atualizado.");
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+const completeGoogleLogin = async () => {
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  let accessToken = params.get("access_token");
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get("code");
+  const authError = params.get("error_description") || params.get("error") || url.searchParams.get("error_description");
+  if (code) {
+    if (!googleAuthClient) {
+      url.searchParams.delete("code");
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      showToast("Configuração do login Google indisponível. Confira se a API está rodando.");
+      return;
+    }
+    try {
+      const { data, error } = await googleAuthClient.auth.exchangeCodeForSession(code);
+      if (error) throw error;
+      accessToken = data.session?.access_token || null;
+    } catch {
+      url.searchParams.delete("code");
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      showToast("Não foi possível concluir o login Google. Tente novamente.");
+      return;
+    }
+  }
+  if (!accessToken && !authError) return;
+  url.searchParams.delete("code");
+  window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  if (authError) {
+    showToast("Não foi possível entrar com Google. Confira a configuração OAuth no Supabase.");
+    return;
+  }
+  try {
+    const data = await api("/auth/google/callback", {
+      method: "POST",
+      body: JSON.stringify({ accessToken }),
+    });
+    currentUser = data.user;
+    updateAuthUI();
+    try {
+      await googleAuthClient?.auth.signOut({ scope: "local" });
+    } catch {
+      // A sessão da aplicação já foi criada pelo backend; falha ao limpar a sessão OAuth
+      // temporária no navegador não deve desfazer o login concluído.
+    }
+    showToast(`Olá, ${currentUser.name}!`);
+  } catch (error) {
+    showToast(error.message);
+  }
+};
+
+const loadGoogleAuthConfig = async () => {
+  try {
+    const config = await api("/auth/google/config");
+    googleAuthEnabled = config.enabled;
+    if (googleAuthEnabled && window.supabase?.createClient) {
+      googleAuthClient = window.supabase.createClient(config.url, config.publishableKey, {
+        auth: { flowType: "pkce", detectSessionInUrl: false, persistSession: true, autoRefreshToken: false },
+      });
+    }
+  } catch {
+    googleAuthEnabled = false;
+    googleAuthClient = null;
+  }
+  $("#authGoogleDivider").hidden = !googleAuthEnabled;
+  $("#googleAuthButton").hidden = !googleAuthEnabled;
+};
+
 // --- Meus produtos: painel do produtor (POST/PATCH/DELETE /api/produtos) ---
 
 let myProducts = [];
@@ -677,19 +967,20 @@ const populateProductCategorySelect = () => {
   const current = select.value;
   select.innerHTML =
     '<option value="">Selecione...</option>' +
-    categories.map((category) => `<option value="${category.name}">${category.name}</option>`).join("");
+    categories.map((category) => `<option value="${escapeHTML(category.name)}">${escapeHTML(category.name)}</option>`).join("");
   if (current) select.value = current;
 };
 
 const resetProductForm = () => {
   productForm.reset();
+  $("#productImageFile").value = "";
   editingProductId = null;
   productFormSubmit.innerHTML = "Adicionar produto <span>→</span>";
   productFormCancel.hidden = true;
 };
 
 const myProductItem = (product) =>
-  `<div class="my-product-item"><img src="${product.image}" alt="${product.name}"><div><h4>${product.name}</h4><small>${money(product.price)} / ${product.unit} · ${product.category}</small></div><div class="my-product-actions"><button type="button" data-edit-product="${product.id}">Editar</button><button type="button" class="my-product-delete" data-delete-product="${product.id}">Remover</button></div></div>`;
+  `<div class="my-product-item"><img src="${safeImageURL(product.image)}" alt="${escapeHTML(product.name)}"><div><h4>${escapeHTML(product.name)}</h4><small>${money(product.price)} / ${escapeHTML(product.unit)} · ${escapeHTML(product.category)}</small></div><div class="my-product-actions"><button type="button" data-edit-product="${Number(product.id)}">Editar</button><button type="button" class="my-product-delete" data-delete-product="${Number(product.id)}">Remover</button></div></div>`;
 
 const renderMyProductsList = () => {
   $("#myProductsList").innerHTML = myProducts.length
@@ -739,6 +1030,8 @@ productForm.addEventListener("submit", async (event) => {
   };
 
   try {
+    const imageFile = $("#productImageFile").files[0];
+    if (imageFile) payload.image = await uploadImage(imageFile, "products");
     if (editingProductId) {
       await api(`/produtos/${editingProductId}`, { method: "PATCH", body: JSON.stringify(payload) });
       showToast("Produto atualizado.");
@@ -799,28 +1092,54 @@ const chatDrawer = $("#chatDrawer");
 const chatContactsElement = $("#chatContacts");
 const chatMessages = $("#chatMessages");
 const chatContactHeading = $("#chatContactHeading");
+const chatSearch = $("#chatSearch");
+const chatForm = $("#chatForm");
+
+const formatChatTime = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+  }).format(date);
+};
 
 const otherParty = (conversation) =>
   currentUser && currentUser.id === conversation.buyer.id
-    ? { label: conversation.producer.name, sub: conversation.producer.property }
-    : { label: conversation.buyer.name, sub: "Comprador" };
+    ? { label: conversation.producer.name, sub: conversation.producer.property, avatarUrl: conversation.producer.avatarUrl }
+    : { label: conversation.buyer.name, sub: "Comprador", avatarUrl: conversation.buyer.avatarUrl };
+
+const chatAvatarMarkup = (name, imageUrl, extraClass = "") =>
+  `<span class="chat-avatar ${extraClass}">${imageUrl ? `<img src="${safeImageURL(imageUrl)}" alt="" />` : escapeHTML(name.charAt(0).toLocaleUpperCase("pt-BR"))}</span>`;
 
 const renderConversationList = () => {
-  chatContactsElement.innerHTML = conversations.length
-    ? conversations
+  const query = chatSearch.value.trim().toLocaleLowerCase("pt-BR");
+  const visibleConversations = conversations.filter((conversation) => {
+    const party = otherParty(conversation);
+    const searchText = `${party.label} ${party.sub} ${conversation.lastMessage?.text || ""}`;
+    return searchText.toLocaleLowerCase("pt-BR").includes(query);
+  });
+  chatContactsElement.innerHTML = visibleConversations.length
+    ? visibleConversations
         .map((conversation) => {
           const party = otherParty(conversation);
-          return `<button class="chat-contact ${conversation.id === activeConversationId ? "active" : ""}" data-chat-contact="${conversation.id}"><span class="chat-avatar">${party.label.charAt(0)}</span><span><strong>${party.label}</strong><small>${party.sub}</small></span></button>`;
+          const lastMessage = conversation.lastMessage;
+          return `<button class="chat-contact ${conversation.id === activeConversationId ? "active" : ""}" data-chat-contact="${Number(conversation.id)}" aria-pressed="${conversation.id === activeConversationId}">${chatAvatarMarkup(party.label, party.avatarUrl)}<span class="chat-contact-copy"><span class="chat-contact-top"><strong>${escapeHTML(party.label)}</strong><time>${lastMessage ? escapeHTML(formatChatTime(lastMessage.createdAt)) : ""}</time></span><small>${escapeHTML(party.sub)}</small><span class="chat-last-message">${escapeHTML(lastMessage?.text || "Inicie a conversa")}</span></span></button>`;
         })
         .join("")
-    : "<p>Nenhuma conversa ainda. Envie uma mensagem a partir do perfil de um produtor.</p>";
+    : `<p class="chat-empty-state">${conversations.length ? "Nenhuma conversa encontrada." : "Suas conversas com produtores e clientes aparecerão aqui."}</p>`;
 };
 
 const renderMessages = (messages) => {
+  const conversation = conversations.find((item) => item.id === activeConversationId);
+  const party = conversation ? otherParty(conversation) : { label: "", avatarUrl: "" };
   chatMessages.innerHTML = messages
     .map(
-      (message) =>
-        `<div class="chat-message ${message.senderId === currentUser?.id ? "mine" : ""}"><p>${message.text}</p><small>${message.createdAt}</small></div>`,
+      (message) => {
+        const mine = message.senderId === currentUser?.id;
+        const senderName = mine ? currentUser.name : party.label;
+        const senderAvatar = mine ? currentUser.avatarUrl : party.avatarUrl;
+        return `<div class="chat-message-row ${mine ? "mine" : ""}">${chatAvatarMarkup(senderName, senderAvatar, "chat-message-avatar")}<div class="chat-message"><p>${escapeHTML(message.text)}</p><time datetime="${escapeHTML(message.createdAt)}">${escapeHTML(formatChatTime(message.createdAt))}</time></div></div>`;
+      },
     )
     .join("");
   chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -831,8 +1150,9 @@ const selectConversation = async (conversationId) => {
   renderConversationList();
   const conversation = conversations.find((item) => item.id === conversationId);
   if (!conversation) return;
+  chatForm.hidden = false;
   const party = otherParty(conversation);
-  chatContactHeading.innerHTML = `<span class="chat-avatar">${party.label.charAt(0)}</span><span><strong>${party.label}</strong><small>${party.sub}</small></span>`;
+  chatContactHeading.innerHTML = `${chatAvatarMarkup(party.label, party.avatarUrl)}<span><strong>${escapeHTML(party.label)}</strong><small>${escapeHTML(party.sub)}</small></span><span class="chat-heading-caption">Conversa direta</span>`;
   try {
     const messages = await api(`/conversas/${conversationId}/mensagens`);
     renderMessages(messages);
@@ -850,11 +1170,14 @@ const openChat = async (conversationId) => {
   chatDrawer.classList.add("open");
   chatDrawer.setAttribute("aria-hidden", "false");
   $("#overlay").classList.add("open");
+  chatForm.hidden = true;
+  chatSearch.value = "";
+  activeConversationId = null;
 
   if (!currentUser) {
     chatContactsElement.innerHTML = "";
     chatContactHeading.innerHTML = "";
-    chatMessages.innerHTML = "<p>Entre na sua conta para ver suas conversas.</p>";
+    chatMessages.innerHTML = '<p class="chat-empty-state">Entre na sua conta para acessar suas conversas.</p>';
     return;
   }
 
@@ -865,7 +1188,7 @@ const openChat = async (conversationId) => {
       await selectConversation(targetId);
     } else {
       chatContactHeading.innerHTML = "";
-      chatMessages.innerHTML = "<p>Nenhuma conversa ainda.</p>";
+      chatMessages.innerHTML = '<p class="chat-empty-state">Você ainda não tem conversas. Quando iniciar um contato com um produtor, ele aparecerá aqui.</p>';
     }
   } catch (error) {
     showToast(error.message);
@@ -880,6 +1203,7 @@ $$('[data-action="chat"]').forEach((button) =>
   button.addEventListener("click", () => openChat()),
 );
 $("#closeChat").addEventListener("click", closeChat);
+chatSearch.addEventListener("input", renderConversationList);
 chatContactsElement.addEventListener("click", (event) => {
   const button = event.target.closest("[data-chat-contact]");
   if (!button) return;
@@ -908,6 +1232,8 @@ $("#chatForm").addEventListener("submit", async (event) => {
 // -----------------------------------------------------------------------------
 
 (async () => {
+  await loadGoogleAuthConfig();
+  await completeGoogleLogin();
   await Promise.all([loadSession(), loadCategories(), loadProducers()]);
   await loadProducts();
   // "produtos disponíveis" é uma foto do catálogo no carregamento da página, não

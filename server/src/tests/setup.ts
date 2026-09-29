@@ -1,7 +1,8 @@
-import { migrate } from "drizzle-orm/libsql/migrator";
+import type { PgliteDatabase } from "drizzle-orm/pglite";
+import { migrate } from "drizzle-orm/pglite/migrator";
 import { db } from "../db/client.js";
+import * as schema from "../db/schema.js";
 
-// Cada arquivo de teste do Vitest tem seu próprio grafo de módulos, então
-// `db/client.ts` cria uma conexão nova (`DATABASE_URL=":memory:"`, ver vitest.config.ts)
-// e este setup aplica as migrações reais antes da suíte rodar.
-await migrate(db, { migrationsFolder: "./src/db/migrations" });
+await migrate(db as unknown as PgliteDatabase<typeof schema>, {
+	migrationsFolder: "./src/db/migrations-pg",
+});
