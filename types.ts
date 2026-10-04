@@ -1,6 +1,6 @@
 /**
- * Contratos do domínio do AgriFam.
- * As respostas da API devem seguir estes formatos quando o backend existir.
+ * Eu explico: Contratos do domínio do AgriFam.
+ * Eu explico: As respostas da API devem seguir estes formatos quando o backend existir.
  */
 export interface Category {
   name: string;
@@ -44,8 +44,8 @@ export interface ProductFilters {
 }
 
 /**
- * Contratos de POST/GET /api/pedidos (ver README.md). `price` não existe no payload
- * de criação — o backend sempre recalcula pelo preço atual do produto no banco.
+ * Eu explico: Contratos de POST/GET /api/pedidos (ver README.md). `price` não existe no payload
+ * Eu explico: de criação — o backend sempre recalcula pelo preço atual do produto no banco.
  */
 export interface CreateOrderItemInput {
   productId: number;
@@ -72,7 +72,7 @@ export interface Order {
   items: OrderItem[];
 }
 
-/** Contratos de GET/POST /api/conversas (ver README.md). */
+/* Eu explico: * Contratos de GET/POST /api/conversas (ver README.md). */
 export interface Message {
   id: number;
   senderId: number;

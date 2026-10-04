@@ -14,8 +14,8 @@ import { requireAuth, requireRole } from "../middlewares/auth.js";
 
 export const catalogRouter = Router();
 
-// Precisa vir antes de "/produtos/:id" só por organização — "/produtor/produtos" não
-// colide com esse padrão de rota, mas mantém as rotas "/produtor/*" agrupadas.
+// Eu explico: Precisa vir antes de "/produtos/:id" só por organização — "/produtor/produtos" não
+// Eu explico: colide com esse padrão de rota, mas mantém as rotas "/produtor/*" agrupadas.
 catalogRouter.get("/produtor/produtos", requireAuth, requireRole("producer"), listMyProducts);
 
 catalogRouter.get("/produtos", listProducts);

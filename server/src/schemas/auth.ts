@@ -19,12 +19,14 @@ export const registerSchema = z.object({
     .email({ message: "Email inválido." }),
   password: z
     .string({ message: "Senha é obrigatória." })
-    .min(8, { message: "Senha deve ter pelo menos 8 caracteres." }),
+    .min(8, { message: "Senha deve ter pelo menos 8 caracteres." })
+    .max(72, { message: "A senha deve ter no máximo 72 caracteres." })
+    .refine((value) => Buffer.byteLength(value, "utf8") <= 72, { message: "A senha excede o limite seguro de bytes." }),
   role: roleSchema,
 });
 
-// Só é validado quando role === "producer" (ver authController.register). Sem esses
-// dados não existe `producerId` para associar produtos em POST /api/produtos.
+// Eu explico: Só é validado quando role === "producer" (ver authController.register). Sem esses
+// Eu explico: dados não existe `producerId` para associar produtos em POST /api/produtos.
 export const producerProfileSchema = z.object({
   property: z
     .string({ message: "Nome da propriedade é obrigatório." })
@@ -50,7 +52,7 @@ export const loginSchema = z.object({
     .email({ message: "Email inválido." }),
   password: z.string({ message: "Senha é obrigatória." }).min(1, {
     message: "Senha é obrigatória.",
-  }),
+  }).max(72, "Senha inválida."),
 });
 
 export const profileUpdateSchema = z.object({
@@ -63,7 +65,7 @@ export const profileUpdateSchema = z.object({
   history: z.string().trim().max(2000).optional(),
   image: z.string().trim().max(2048).optional(),
   currentPassword: z.string().optional(),
-  newPassword: z.string().min(8, "A nova senha deve ter pelo menos 8 caracteres.").optional(),
+  newPassword: z.string().min(8, "A nova senha deve ter pelo menos 8 caracteres.").max(72, "A nova senha deve ter no máximo 72 caracteres.").refine((value) => Buffer.byteLength(value, "utf8") <= 72, { message: "A senha excede o limite seguro de bytes." }).optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

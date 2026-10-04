@@ -257,12 +257,36 @@ describe("GET /api/produtores", () => {
 
 describe("GET /api/categorias", () => {
   it("retorna categorias com a contagem real de produtos", async () => {
+    const countCategory = `Categoria Contagem ${Date.now()}`;
+    await db.insert(categories).values({ name: countCategory, icon: "leaf" });
+    const producer = await registerProducer({ property: "Sítio Contagem" });
+    for (const name of ["Produto Um", "Produto Dois"]) {
+      const createResponse = await request(app)
+        .post("/api/produtos")
+        .set("Cookie", producer.cookie)
+        .send({
+          name,
+          price: 5,
+          unit: "kg",
+          location: "Teresina - PI",
+          category: countCategory,
+        });
+      expect(createResponse.status).toBe(201);
+    }
+
     const response = await request(app).get("/api/categorias");
     expect(response.status).toBe(200);
 
     const found = response.body.find((c: { name: string }) => c.name === categoryName);
     expect(found).toBeDefined();
     expect(found.count).toMatch(/^\d+ produtos?$/);
+
+    const counted = response.body.find((c: { name: string }) => c.name === countCategory);
+    expect(counted.count).toBe("2 produtos");
+
+    const regional = response.body.find((c: { name: string }) => c.name === "Regionais");
+    const listedProducts = await request(app).get("/api/produtos");
+    expect(Number.parseInt(regional.count, 10)).toBe(listedProducts.body.length);
   });
 });
 

@@ -36,8 +36,8 @@ const registerProducer = async (overrides: Record<string, unknown> = {}) => {
   };
 };
 
-// O registro não devolve o producerId diretamente (só o `user`) — descobrimos pela
-// listagem pública de produtores, igual o frontend faria.
+// Eu explico: O registro não devolve o producerId diretamente (só o `user`) — descobrimos pela
+// Eu explico: listagem pública de produtores, como a interface web faria.
 const findProducerId = async (property: string) => {
   const response = await request(app).get("/api/produtores");
   const found = response.body.find((p: { property: string }) => p.property === property);

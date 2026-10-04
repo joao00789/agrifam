@@ -42,9 +42,9 @@ const productSelection = {
   categoryName: categories.name,
 };
 
-// -----------------------------------------------------------------------------
-// Produtos
-// -----------------------------------------------------------------------------
+
+// Eu explico: Produtos
+
 
 export const listProducts = async (req: Request, res: Response) => {
   const search = String(req.query.search ?? "").trim().toLowerCase();
@@ -58,6 +58,8 @@ export const listProducts = async (req: Request, res: Response) => {
     .innerJoin(categories, eq(products.categoryId, categories.id))
     .where(
       and(
+        eq(products.isActive, true),
+        eq(producers.isActive, true),
         category ? eq(categories.name, category) : undefined,
         search
           ? or(
@@ -77,9 +79,9 @@ export const listProducts = async (req: Request, res: Response) => {
   res.json(list);
 };
 
-// Usado pela tela "Meus produtos" do produtor (frontend) para saber o que já existe
-// antes de decidir se cria ou edita — não tem equivalente no contrato original de
-// GET /api/produtos, que não filtra por dono.
+// Eu explico: Usado pela tela "Meus produtos" do produtor (interface web) para saber o que já existe
+// Eu explico: antes de decidir se cria ou edita — não tem equivalente no contrato inicial de
+// Eu explico: GET /api/produtos, que não filtra por dono.
 export const listMyProducts = async (req: Request, res: Response) => {
   const producerProfile = await db.query.producers.findFirst({
     where: eq(producers.userId, req.user!.sub),
@@ -91,7 +93,7 @@ export const listMyProducts = async (req: Request, res: Response) => {
     .from(products)
     .innerJoin(producers, eq(products.producerId, producers.id))
     .innerJoin(categories, eq(products.categoryId, categories.id))
-    .where(eq(products.producerId, producerProfile.id));
+    .where(and(eq(products.producerId, producerProfile.id), eq(products.isActive, true)));
 
   res.json(rows.map(toProductResponse));
 };
@@ -103,7 +105,7 @@ export const getProduct = async (req: Request, res: Response) => {
     .from(products)
     .innerJoin(producers, eq(products.producerId, producers.id))
     .innerJoin(categories, eq(products.categoryId, categories.id))
-    .where(eq(products.id, id));
+    .where(and(eq(products.id, id), eq(products.isActive, true), eq(producers.isActive, true)));
 
   if (!row) throw new ApiError(404, "Produto não encontrado.");
   res.json(toProductResponse(row));
@@ -150,7 +152,7 @@ export const createProduct = async (req: Request, res: Response) => {
 };
 
 const getOwnedProduct = async (productId: number, userId: number) => {
-  const product = await db.query.products.findFirst({ where: eq(products.id, productId) });
+  const product = await db.query.products.findFirst({ where: and(eq(products.id, productId), eq(products.isActive, true)) });
   if (!product) throw new ApiError(404, "Produto não encontrado.");
 
   const producerProfile = await db.query.producers.findFirst({
@@ -203,13 +205,15 @@ export const deleteProduct = async (req: Request, res: Response) => {
   const id = parseIdParam(req.params.id);
   await getOwnedProduct(id, req.user!.sub);
 
-  await db.delete(products).where(eq(products.id, id));
+  // Eu explico: Mantenha as referências de order_items.product_id e o histórico de pedidos.
+  // Eu explico: Produtos inativos já não aparecem no catálogo público nem na loja do vendedor.
+  await db.update(products).set({ isActive: false }).where(eq(products.id, id));
   res.json({ ok: true });
 };
 
-// -----------------------------------------------------------------------------
-// Produtores
-// -----------------------------------------------------------------------------
+
+// Eu explico: Produtores
+
 
 const producerSelection = {
   id: producers.id,
@@ -223,7 +227,7 @@ const producerSelection = {
 };
 
 export const listProducers = async (_req: Request, res: Response) => {
-  const rows = await db.select(producerSelection).from(producers).innerJoin(users, eq(producers.userId, users.id));
+  const rows = await db.select(producerSelection).from(producers).innerJoin(users, eq(producers.userId, users.id)).where(eq(producers.isActive, true));
   res.json(rows);
 };
 
@@ -233,15 +237,15 @@ export const getProducer = async (req: Request, res: Response) => {
     .select(producerSelection)
     .from(producers)
     .innerJoin(users, eq(producers.userId, users.id))
-    .where(eq(producers.id, id));
+    .where(and(eq(producers.id, id), eq(producers.isActive, true)));
 
   if (!row) throw new ApiError(404, "Produtor não encontrado.");
   res.json(row);
 };
 
-// -----------------------------------------------------------------------------
-// Categorias
-// -----------------------------------------------------------------------------
+
+// Eu explico: Categorias
+
 
 export const listCategories = async (_req: Request, res: Response) => {
   const rows = await db
@@ -249,18 +253,28 @@ export const listCategories = async (_req: Request, res: Response) => {
       id: categories.id,
       name: categories.name,
       icon: categories.icon,
-      count: sql<number>`count(${products.id})`,
+      count: sql<number>`count(${producers.id})::int`,
     })
     .from(categories)
-    .leftJoin(products, eq(products.categoryId, categories.id))
+    .leftJoin(products, and(eq(products.categoryId, categories.id), eq(products.isActive, true)))
+    .leftJoin(producers, and(eq(producers.id, products.producerId), eq(producers.isActive, true)))
     .groupBy(categories.id);
 
+  const [availableProducts] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(products)
+    .innerJoin(producers, eq(producers.id, products.producerId))
+    .where(and(eq(products.isActive, true), eq(producers.isActive, true)));
+
   res.json(
-    rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      icon: row.icon,
-      count: `${row.count} produto${row.count === 1 ? "" : "s"}`,
-    })),
+    rows.map((row) => {
+      const count = row.name === "Regionais" ? availableProducts.count : Number(row.count);
+      return {
+        id: row.id,
+        name: row.name,
+        icon: row.icon,
+        count: `${count} produto${count === 1 ? "" : "s"}`,
+      };
+    }),
   );
 };

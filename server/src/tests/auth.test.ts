@@ -168,6 +168,53 @@ describe("GET /api/auth/me", () => {
   });
 });
 
+describe("POST /api/auth/refresh", () => {
+  it("renova o token de acesso e rotaciona o refresh token", async () => {
+    const registerResponse = await request(app).post("/api/auth/register").send({
+      name: "Renovação",
+      email: uniqueEmail("refresh"),
+      password: "senha1234",
+      role: "buyer",
+    });
+    const registerCookies = registerResponse.headers["set-cookie"] as unknown as string[];
+    const oldRefreshCookie = registerCookies.find((cookie) => cookie.startsWith("agrifam_refresh="))!;
+    const refreshResponse = await request(app).post("/api/auth/refresh").set("Cookie", oldRefreshCookie);
+    expect(refreshResponse.status).toBe(200);
+    const refreshCookies = refreshResponse.headers["set-cookie"] as unknown as string[];
+    const newAccessCookie = refreshCookies.find((cookie) => cookie.startsWith("agrifam_token="))!;
+    expect(newAccessCookie).toBeTruthy();
+    const sessionResponse = await request(app).get("/api/auth/me").set("Cookie", newAccessCookie);
+    expect(sessionResponse.status).toBe(200);
+
+    const replayResponse = await request(app).post("/api/auth/refresh").set("Cookie", oldRefreshCookie);
+    expect(replayResponse.status).toBe(401);
+  });
+});
+
+describe("PATCH /api/auth/me com troca de senha", () => {
+  it("revoga sessões anteriores e mantém ativa a sessão que trocou a senha", async () => {
+    const registerResponse = await request(app).post("/api/auth/register").send({
+      name: "Troca de senha",
+      email: uniqueEmail("troca-senha"),
+      password: "senha1234",
+      role: "buyer",
+    });
+    const oldCookies = registerResponse.headers["set-cookie"];
+    const response = await request(app).patch("/api/auth/me").set("Cookie", oldCookies).send({
+      name: "Troca de senha",
+      email: registerResponse.body.user.email,
+      currentPassword: "senha1234",
+      newPassword: "senhaNova123",
+    });
+    expect(response.status).toBe(200);
+    const updatedCookies = response.headers["set-cookie"] as unknown as string[];
+    const newAccessCookie = updatedCookies.find((cookie) => cookie.startsWith("agrifam_token="))!;
+    expect(newAccessCookie).toBeTruthy();
+    expect((await request(app).get("/api/auth/me").set("Cookie", oldCookies)).status).toBe(401);
+    expect((await request(app).get("/api/auth/me").set("Cookie", newAccessCookie)).status).toBe(200);
+  });
+});
+
 describe("POST /api/auth/logout", () => {
   it("responde ok e o cookie deixa de autenticar depois", async () => {
     const email = uniqueEmail("logout");

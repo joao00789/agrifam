@@ -1,8 +1,8 @@
 /*
- * Mapa público da região do AgriFam.
- * Os marcadores mostram o centro das cidades, nunca a localização de uma casa
- * ou propriedade. Quando houver coordenadas de produtores com consentimento,
- * elas poderão ser adicionadas por uma camada separada e aproximada.
+ * Eu explico: Mapa público da região do AgriFam.
+ * Eu explico: Os marcadores mostram o centro das cidades, nunca a localização de uma casa
+ * Eu explico: ou propriedade. Quando houver coordenadas de produtores com consentimento,
+ * Eu explico: elas poderão ser adicionadas por uma camada separada e aproximada.
  */
 (() => {
   const mapElement = document.getElementById("regionMap");
@@ -56,7 +56,8 @@
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(map);
   L.control.zoom({ position: "bottomright" }).addTo(map);
 
@@ -87,8 +88,8 @@
     });
   });
 
-  // Leaflet mede o mapa antes da seção aparecer em alguns celulares; recalcular
-  // ao rolar até ela evita áreas cinzas ou controles fora do lugar.
+  // Eu explico: Leaflet mede o mapa antes da seção aparecer em alguns celulares; recalcular
+  // Eu explico: ao rolar até ela evita áreas cinzas ou controles fora do lugar.
   if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) map.invalidateSize();

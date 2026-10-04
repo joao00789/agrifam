@@ -7,7 +7,7 @@ export default defineConfig({
     setupFiles: ["./src/tests/setup.ts"],
     env: {
       DATABASE_URL: "pglite:memory",
-      JWT_SECRET: "test-secret-nao-usar-em-producao",
+      JWT_SECRET: "segredo-de-teste-longo-e-nao-usar-em-producao-0001",
       CORS_ORIGIN: "http://localhost:5173",
     },
   },

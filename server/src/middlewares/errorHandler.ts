@@ -12,10 +12,10 @@ export const notFoundHandler = (req: Request, res: Response) => {
   res.status(404).json({ error: "Rota não encontrada." });
 };
 
-// Middleware de erro precisa dos 4 parâmetros para o Express reconhecê-lo como tal.
+// Eu explico: Middleware de erro precisa dos 4 parâmetros para o Express reconhecê-lo como tal.
 export const errorHandler = (
   err: unknown,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction,
 ) => {
@@ -23,6 +23,13 @@ export const errorHandler = (
     res.status(err.status).json({ error: err.message });
     return;
   }
-  console.error(err);
+  // Eu explico: Não registre corpo, cookies, tokens ou a mensagem bruta do banco/provedor.
+  console.error(JSON.stringify({
+    level: "error",
+    requestId: req.requestId,
+    method: req.method,
+    path: req.path,
+    errorName: err instanceof Error ? err.name : "UnknownError",
+  }));
   res.status(500).json({ error: "Erro interno do servidor." });
 };

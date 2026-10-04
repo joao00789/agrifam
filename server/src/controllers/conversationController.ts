@@ -8,8 +8,8 @@ import { parseIdParam } from "../utils/parseIdParam.js";
 
 type ConversationRow = typeof conversations.$inferSelect;
 
-// Garante que o usuário autenticado é o comprador ou o dono do perfil de produtor da
-// conversa; lança 404/403 e nunca deixa passar quem não participa.
+// Eu explico: Garante que o usuário autenticado é o comprador ou o dono do perfil de produtor da
+// Eu explico: conversa; lança 404/403 e nunca deixa passar quem não participa.
 const requireParticipant = async (
   conversationId: number,
   userId: number,
@@ -42,8 +42,8 @@ export const listConversations = async (req: Request, res: Response) => {
     with: {
       buyer: true,
       producer: { with: { user: true } },
-      // `created_at` só tem precisão de segundo no SQLite — desempata por `id`
-      // (sempre crescente) para pegar a mensagem mais recente de verdade.
+      // Eu explico: `created_at` só tem precisão de segundo no SQLite — desempata por `id`
+      // Eu explico: (sempre crescente) para pegar a mensagem mais recente de verdade.
       messages: { orderBy: [desc(messages.createdAt), desc(messages.id)], limit: 1 },
     },
     orderBy: [desc(conversations.createdAt), desc(conversations.id)],
@@ -61,6 +61,7 @@ export const listConversations = async (req: Request, res: Response) => {
       },
       lastMessage: row.messages[0]
         ? {
+            id: row.messages[0].id,
             text: row.messages[0].text,
             senderId: row.messages[0].senderId,
             createdAt: row.messages[0].createdAt,

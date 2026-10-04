@@ -1,6 +1,5 @@
 import { Router } from "express";
 import {
-  createOrder,
   getOrder,
   listMyOrders,
   listProducerOrders,
@@ -9,8 +8,7 @@ import { requireAuth, requireRole } from "../middlewares/auth.js";
 
 export const orderRouter = Router();
 
-// Qualquer usuário autenticado pode comprar (comprador ou produtor comprando de outro).
-orderRouter.post("/pedidos", requireAuth, createOrder);
+// Eu explico: Os pagamentos passam por `/api/pagamentos/checkout`; esta rota exibe apenas o histórico.
 orderRouter.get("/pedidos", requireAuth, listMyOrders);
 orderRouter.get("/pedidos/:id", requireAuth, getOrder);
 

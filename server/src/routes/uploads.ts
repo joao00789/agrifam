@@ -6,12 +6,13 @@ import { producers } from "../db/schema.js";
 import { ApiError } from "../middlewares/errorHandler.js";
 import { requireAuth, requireRole } from "../middlewares/auth.js";
 import { createRateLimit } from "../middlewares/rateLimit.js";
+import { decodeImageDataUrl } from "../utils/decodeImageDataUrl.js";
 
 export const uploadRouter = Router();
-const uploadRateLimit = createRateLimit(20, 15 * 60 * 1000);
+const uploadRateLimit = createRateLimit(20, 15 * 60 * 1000, "uploads");
 
-// Supabase's sb_secret keys are API keys, not JWTs: send them as `apikey` only.
-// The bucket is public because the app stores public URLs for profile/product images.
+// Eu explico: As chaves sb_secret do Supabase são chaves de API, não JWTs: envie-as apenas em `apikey`.
+// Eu explico: O bucket é público porque o app usa URLs públicas nas fotos de perfil e de produtos.
 const storageHeaders = (apiKey: string, contentType: string): Record<string, string> => ({
   apikey: apiKey,
   "Content-Type": contentType,
@@ -26,17 +27,8 @@ uploadRouter.post("/perfil/imagem", uploadRateLimit, requireAuth, async (req, re
     throw new ApiError(503, "Configure SUPABASE_URL e SUPABASE_SECRET_KEY para habilitar uploads.");
   }
 
-  const dataUrl = typeof req.body?.dataUrl === "string" ? req.body.dataUrl : "";
-  const match = dataUrl.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
-  if (!match) throw new ApiError(400, "Envie uma imagem PNG, JPG ou WebP válida.");
-  const contentType = match[1];
-  const file = Buffer.from(match[2], "base64");
-  if (!file.length || file.length > 3 * 1024 * 1024) {
-    throw new ApiError(400, "A imagem deve ter no máximo 3 MB.");
-  }
-
-  const extension = contentType === "image/jpeg" ? "jpg" : contentType.split("/")[1];
-  // Each upload gets a new object path, so it never silently overwrites an old photo.
+  const { contentType, extension, file } = decodeImageDataUrl(req.body?.dataUrl);
+  // Eu explico: Cada envio ganha um caminho novo para nunca substituir uma foto sem aviso.
   const path = `${req.user!.sub}/profile/${randomUUID()}.${extension}`;
   const uploadResponse = await fetch(`${supabaseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${path}`, {
     method: "POST",
@@ -61,19 +53,11 @@ uploadRouter.post("/produtor/imagens", uploadRateLimit, requireAuth, requireRole
     throw new ApiError(503, "Configure SUPABASE_URL e SUPABASE_SECRET_KEY para habilitar uploads.");
   }
 
-  const dataUrl = typeof req.body?.dataUrl === "string" ? req.body.dataUrl : "";
   const kind = req.body?.kind === "store" ? "store" : "products";
-  const match = dataUrl.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
-  if (!match) throw new ApiError(400, "Envie uma imagem PNG, JPG ou WebP válida.");
-  const contentType = match[1];
-  const file = Buffer.from(match[2], "base64");
-  if (!file.length || file.length > 3 * 1024 * 1024) {
-    throw new ApiError(400, "A imagem deve ter no máximo 3 MB.");
-  }
+  const { contentType, extension, file } = decodeImageDataUrl(req.body?.dataUrl);
   const producer = await db.query.producers.findFirst({ where: eq(producers.userId, req.user!.sub) });
   if (!producer) throw new ApiError(404, "Perfil de produtor não encontrado.");
 
-  const extension = contentType === "image/jpeg" ? "jpg" : contentType.split("/")[1];
   const path = `${producer.id}/${kind}/${randomUUID()}.${extension}`;
   const uploadResponse = await fetch(`${supabaseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${path}`, {
     method: "POST",

@@ -1,357 +1,235 @@
 # AgriFam
 
-Site da AgriFam, uma plataforma para aproximar consumidores da agricultura familiar.
+Plataforma de agricultura familiar para conectar produtores locais a clientes. O sistema reúne catálogo real, perfis de lojas, pedidos com Mercado Pago, autenticação, conversas e recursos de acessibilidade.
 
-## Ver esta versão no GitHub
+## Conteúdo
 
-Esta atualização está publicada na branch [`melhorias-agrifam`](https://github.com/joao00789/agrifam/tree/melhorias-agrifam). Para comparar com a `main` ou abrir um pull request, acesse [comparar e criar pull request](https://github.com/joao00789/agrifam/pull/new/melhorias-agrifam). A `main` não foi alterada.
+- [Recursos](#recursos)
+- [Tecnologias](#tecnologias)
+- [Executar localmente](#executar-localmente)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Segurança](#segurança)
+- [Rotas da API](#rotas-da-api)
+- [Pagamentos](#pagamentos)
+- [Publicar na Vercel](#publicar-na-vercel)
+- [Estrutura do projeto](#estrutura-do-projeto)
+- [Manutenção](#manutenção)
 
-No GitHub, também é possível abrir **Branches**, selecionar `melhorias-agrifam` e navegar pelos arquivos. Os arquivos `.env` com credenciais reais não fazem parte desta branch.
+## Recursos
 
-> **Dados de demonstração:** `server/src/db/seed.ts` contém registros de exemplo para
-> desenvolvimento. O seed é manual; nunca o execute em um banco com dados reais sem
-> antes revisar os registros que serão inseridos.
+- Catálogo e lojas com dados mantidos no PostgreSQL do Supabase.
+- Cadastro e login por email, além de login com Google pelo Supabase Auth.
+- Perfis de comprador e produtor, com autorização específica para cada ação.
+- Cadastro, edição e remoção de produtos pelo painel do produtor. Remover desativa o produto e preserva o histórico de pedidos.
+- Carrinho, favoritos e busca com filtros.
+- Conversas privadas entre compradores e produtores, com atualização automática enquanto o chat está aberto.
+- Checkout Mercado Pago Marketplace, divisão por loja e taxa configurável.
+- Tema claro/escuro, painel de acessibilidade, VLibras e instalação como PWA.
+- Mapa regional interativo com Leaflet e dados de mapas do OpenStreetMap.
 
-Para saber onde editar cada parte, veja o [Guia de manutenção](docs/MANUTENCAO.md).
+## Tecnologias
 
-## Stack do frontend
-
-- **HTML5**: estrutura semântica, acessibilidade básica e pontos de montagem do conteúdo.
-- **CSS3**: layout, tokens visuais, responsividade, estados e animações.
-- **JavaScript**: comportamento da página, integração com a API do backend e interações.
-- **TypeScript**: contratos de dados e base para a migração gradual do JavaScript.
-- **Swiper 11**: carrossel principal do hero.
-- **DM Sans** e **Nunito Sans**: tipografia carregada pelo Google Fonts.
-
-O navegador usa `script.js` diretamente. O `script.ts` ainda é uma base tipada separada e não é carregado pelo `index.html`.
-
-## Recursos externos
-
-Os recursos externos usados atualmente estão concentrados no `index.html` e nas URLs dos dados de `script.js`:
-
-| Recurso | Local de uso | Origem |
-| --- | --- | --- |
-| DM Sans e Nunito Sans | Títulos, textos e controles | [Google Fonts](https://fonts.google.com/) carregado no `<head>` |
-| Swiper 11 | Carrossel `.hero` | [jsDelivr](https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js) |
-| Leaflet 1.9.4 | Mapa regional interativo | [unpkg](https://unpkg.com/leaflet@1.9.4/) |
-| Mosaicos cartográficos | Ruas e referências geográficas do mapa | [OpenStreetMap](https://www.openstreetmap.org/copyright) |
-| Imagens de produtos e produtores | Cards do catálogo e produtores | [Unsplash](https://unsplash.com/) por URL em `script.js` |
-| Shader do hero | Canvas `#heroShader` | Pacote `gradient-gl@2.0.5` via [unpkg](https://unpkg.com/gradient-gl@2.0.5) |
-| Busca por voz | Botões `.voice-search` | API nativa `SpeechRecognition`/`webkitSpeechRecognition` do navegador |
-
-As imagens externas dependem de conexão com a internet. Para produção, prefira baixar os arquivos aprovados e colocá-los em `asset/imagens/`.
-
-## Assets locais
-
-Os arquivos visuais ficam em `asset/`:
-
-### Ícones PNG
-
-| Arquivo | Uso no frontend |
+| Camada | Tecnologias |
 | --- | --- |
-| `asset/icons/lupa.png` | Ícone dos campos de busca desktop e mobile |
-| `asset/icons/carrinho.png` | Botão do carrinho no cabeçalho |
-| `asset/icons/menu hamburger open.png` | Menu mobile fechado |
-| `asset/icons/menu hamburger close.png` | Menu mobile aberto |
-| `asset/icons/seta esquerda.png` | Navegação anterior do carrossel |
-| `asset/icons/seta direita.png` | Navegação seguinte do carrossel |
+| Interface | HTML, CSS e JavaScript |
+| API | Node.js, Express 5 e TypeScript |
+| Banco | PostgreSQL, Supabase e Drizzle ORM |
+| Identidade | JWT em cookie `HttpOnly`; Supabase Auth para Google |
+| Imagens | Supabase Storage |
+| Pagamentos | Mercado Pago Checkout Pro Marketplace |
+| Hospedagem | Vercel (site estático e uma função Express para a API) |
 
-### Imagens locais
+O navegador carrega `script.js`. `script.ts` é uma base tipada separada para uma migração gradual; não é carregado pela página hoje.
 
-| Arquivo | Uso no frontend |
+## Executar localmente
+
+### Requisitos
+
+- Node.js 20 ou superior.
+- Um projeto Supabase com PostgreSQL e Storage.
+- As credenciais locais descritas em [Variáveis de ambiente](#variáveis-de-ambiente).
+
+### Preparar o banco
+
+1. Copie `server/.env.example` para `server/.env` e preencha `DATABASE_URL`.
+2. Para um banco novo, revise e execute `server/supabase-schema.sql` no SQL Editor do Supabase.
+3. Para atualizar uma instalação existente, revise e aplique as migrações necessárias em `server/src/db/migrations-pg/`. Não execute o schema inicial por cima de tabelas existentes.
+
+O servidor não altera o banco automaticamente ao iniciar. Isso mantém a aplicação longe de mudanças inesperadas em dados de produção.
+
+### Iniciar a API e a interface
+
+Terminal 1, na raiz do projeto:
+
+```bash
+npm ci --prefix server
+npm run dev --prefix server
+```
+
+A API fica em `http://localhost:3333`.
+
+Terminal 2, também na raiz:
+
+```bash
+python3 -m http.server 5173
+```
+
+Abra `http://localhost:5173`. Não abra `index.html` com `file://`, pois a sessão e as chamadas à API dependem de HTTP.
+
+Para compilar o backend:
+
+```bash
+npm run build --prefix server
+```
+
+## Variáveis de ambiente
+
+Os valores reais ficam em `server/.env` localmente e nas variáveis protegidas do projeto Vercel. Nunca coloque segredos em `index.html`, `script.js`, README, commits ou capturas de tela.
+
+| Variável | Uso |
 | --- | --- |
-| `asset/imagens/logo 2.png` | Logo do cabeçalho e rodapé |
-| `asset/imagens/fundo 1.jpg` | Primeiro slide do hero |
-| `asset/imagens/fundo 2.jpg` | Segundo slide do hero |
-| `asset/imagens/fundo 3.jpg` | Terceiro slide do hero |
-| `asset/imagens/print.png` | Imagem auxiliar disponível no projeto |
+| `DATABASE_URL` | URI PostgreSQL do Supabase. A conexão do backend exige SSL. |
+| `JWT_SECRET` | Segredo aleatório forte para assinar sessões. Use pelo menos 32 caracteres; prefira 48 bytes aleatórios ou mais. |
+| `PORT` | Porta local da API; normalmente `3333`. |
+| `CORS_ORIGIN` | Origem permitida para desenvolvimento separado. Em produção, use o domínio canônico HTTPS do site (`https://agri-fam2.vercel.app`). |
+| `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` | Rate limit compartilhado entre instâncias serverless. Obrigatórias em produção; crie um banco Redis no Upstash e configure no ambiente Production da Vercel. |
+| `RESEND_API_KEY` e `AUTH_EMAIL_FROM` | Envio de links temporários de redefinição de senha. O domínio do remetente precisa estar verificado no Resend. |
+| `SUPABASE_URL` | URL do projeto Supabase. |
+| `SUPABASE_PUBLISHABLE_KEY` | Chave pública usada no fluxo de login Google. Não dá autorização administrativa à API. |
+| `SUPABASE_SECRET_KEY` | Chave privada usada somente no servidor para gravar imagens. Nunca exponha no frontend. |
+| `SUPABASE_STORAGE_BUCKET` | Bucket usado para fotos; normalmente `agrifam-images`. |
+| `MP_CLIENT_ID` e `MP_CLIENT_SECRET` | Credenciais privadas da aplicação Marketplace. |
+| `MP_REDIRECT_URI` | Callback OAuth cadastrada no Mercado Pago, terminada em `/api/pagamentos/mercadopago/callback`. |
+| `MP_TOKEN_ENCRYPTION_KEY` | Chave exclusiva de 32 bytes para criptografar tokens Mercado Pago no banco. Preserve uma cópia segura. |
+| `MP_WEBHOOK_SECRET` | Segredo para conferir a assinatura HMAC dos webhooks do Mercado Pago. |
+| `MP_MARKETPLACE_FEE_PERCENT` | Comissão da plataforma; atualmente configurada em 3%. |
+| `PUBLIC_APP_URL` | URL HTTPS canônica do site, usada em callbacks e retornos de pagamento. |
 
-### SVGs e mapa
+Gere segredos localmente; nunca reutilize os valores de exemplo:
 
-Não há biblioteca de ícones instalada. Os demais ícones são SVGs inline:
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))" # JWT_SECRET
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))" # MP_TOKEN_ENCRYPTION_KEY
+```
 
-- Ícones de navegação, favoritos, microfone, filtros, redes sociais e treinamento ficam diretamente no `index.html`.
-- Ícones das categorias ficam no objeto `categoryIcons` de `script.js` e são inseridos na renderização da categoria.
-- Ícones de estado vazio e elementos pequenos também podem ser SVG inline.
+Se um segredo real for parar em um commit, log ou conversa, considere-o comprometido: revogue-o no provedor, gere outro e atualize o deploy. Apagar o texto depois não invalida uma credencial exposta.
 
-O mapa de cidades usa Leaflet: o HTML fica em `index.html`, a aparência em `style.css` e os locais e eventos em `region-map.js`. Os marcadores representam referências aproximadas dos centros municipais, não endereços de produtores. Os botões levam o mapa a Jardim do Mulato, Angical do Piauí, Regeneração, Santo Antônio dos Milagres, São Gonçalo do Piauí e Hugo Napoleão. Os dados de ruas vêm dos tiles do OpenStreetMap, portanto o navegador precisa de internet para carregá-los.
+## Segurança
 
-Para adicionar um ícone pequeno de interface, prefira reutilizar um SVG inline existente. Para uma imagem que precisa ser trocada pela equipe, use `asset/icons/` e referencie o caminho com `src="asset/icons/nome-do-arquivo.png"`.
+### Proteções implementadas
 
-## Onde encontrar cada parte
+- **Criptografia em trânsito:** a Vercel serve o site por HTTPS; HSTS é configurado nos cabeçalhos de produção. A conexão PostgreSQL usa SSL.
+- **Sessão:** JWT de acesso com 15 minutos e refresh token rotativo, opaco, armazenado como hash no banco e entregue em cookies `HttpOnly`, `SameSite=Lax` e `Secure` em produção. JavaScript da página não consegue ler os tokens.
+- **Autorização no backend:** rotas de produtor exigem sessão e função de produtor. Alterações de produto verificam também a propriedade do registro. Conversas e pedidos conferem a participação/dono no servidor.
+- **Entradas:** corpos de API passam por schemas Zod ou validação explícita antes de alcançar as operações de banco e pagamento. Consultas usam Drizzle ORM.
+- **Limites e tamanho:** login/cadastro, uploads, conexão de pagamento, checkout e mensagens têm limites compartilhados por Upstash em produção; o JSON da API tem limite de tamanho e imagens passam por validação de conteúdo real e tamanho.
+- **Cabeçalhos:** `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` e HSTS em produção.
+- **Dados financeiros:** o backend recalcula valores a partir do catálogo. Webhooks são conferidos por HMAC e o pagamento é consultado no Mercado Pago antes de atualizar o pedido.
+- **Segredos de pagamento:** tokens OAuth dos lojistas são armazenados com AES-256-GCM. A chave fica no ambiente do backend.
+- **Erros:** a API retorna mensagens genéricas para falhas internas, sem enviar stack trace ao navegador.
+- **Cache:** respostas da API recebem `Cache-Control: no-store`.
 
-### Estrutura da página: `index.html`
+### Sobre criptografar rotas e esconder links
 
-| Parte | Localizador principal | Responsabilidade |
+HTTPS/TLS criptografa a comunicação entre o navegador e o servidor. Não se deve criptografar nem tentar esconder caminhos como `/api/auth/me`: nomes de rota e páginas do frontend não são segredos e podem ser vistos nas ferramentas do navegador. A proteção real é validar identidade, função e propriedade em cada endpoint — isso é feito no backend. Os links de navegação não concedem acesso aos dados por si só.
+
+### Operação segura
+
+1. Mantenha `.env` fora do Git; `.gitignore` já ignora esses arquivos. Só `server/.env.example`, sem valores reais, deve ser compartilhado.
+2. Mantenha `JWT_SECRET`, `MP_CLIENT_SECRET`, `MP_WEBHOOK_SECRET`, `MP_TOKEN_ENCRYPTION_KEY` e `SUPABASE_SECRET_KEY` como variáveis privadas do servidor.
+3. Não registre tokens, senhas, cookies, chaves ou conteúdo pessoal em logs. Os logs de produção devem conter apenas o necessário para diagnóstico.
+4. Proteja a conta Vercel, Supabase, Mercado Pago e GitHub com senhas exclusivas e autenticação em dois fatores.
+5. Revise mudanças de banco e dependências antes de aplicar em produção. Faça backup do banco antes de migrações.
+
+### Configuração obrigatória antes de produção
+
+- Configure Redis compartilhado Upstash; as rotas limitadas respondem `503` em produção se as variáveis estiverem ausentes ou o Redis estiver indisponível.
+- Configure Resend e um remetente verificado para a recuperação de senha.
+- Aplique e revise as migrações PostgreSQL `0003_auth_sessions_and_password_resets.sql` e `0004_idempotent_checkout_and_payment_audit.sql` no banco de destino antes do deploy. A aplicação não as executa ao iniciar.
+- Faça testes ponta a ponta de login, recuperação, pagamentos e exclusão em staging e configure backup/monitoramento fora do código.
+
+Veja o [Roadmap de Segurança e Produção](docs/ROADMAP_SEGURANCA.md) para separar o que está no código do que ainda requer configuração externa, revisão jurídica ou validação manual. Nenhuma checklist garante ausência de vulnerabilidades.
+
+## Rotas da API
+
+Os caminhos são públicos no sentido de que o navegador consegue solicitá-los; isso é esperado. As respostas e alterações protegidas dependem das verificações do servidor.
+
+| Método e caminho | Acesso | Finalidade |
 | --- | --- | --- |
-| Aviso superior | `.announcement` | Mensagem institucional no topo |
-| Cabeçalho desktop/mobile | `#topo`, `.site-header` | Logo, busca, navegação e ações |
-| Menu mobile | `#mobileMenu`, `#menuToggle` | Navegação responsiva |
-| Hero/carrossel | `.hero`, `.hero-one`, `.hero-two`, `.hero-three` | Destaques principais |
-| Categorias | `#categorias`, `#categoryList` | Categorias renderizadas pelo JavaScript |
-| Produtos e filtros | `#produtos`, `#productGrid`, `#filters` | Catálogo, busca, ordenação e filtros |
-| Como funciona | `#como-funciona` | Etapas de compra local |
-| Produtores | `#produtores`, `#producerGrid` | Cards e perfis dos produtores |
-| Educação | `#educacao`, `#capacitacao` | Conteúdo institucional e treinamentos |
-| Localização | `.location-section`, `#regionMap` | Mapa regional interativo e indicadores da plataforma |
-| CTA do produtor | `#seja-produtor` | Chamada para cadastro de produtores |
-| Rodapé | `#sobre`, `.site-footer` | Links institucionais e redes sociais |
-| Carrinho | `#cartDrawer`, `#cartItems` | Drawer do carrinho e total |
-| Chat | `#chatDrawer`, `#chatMessages` | Conversas entre cliente e produtor |
-| Modais | `#producerModal`, `#authModal`, `#trainingModal` | Perfis, login e capacitação |
+| `GET /api/health` | Público | Verificar disponibilidade da API. |
+| `POST /api/auth/register`, `POST /api/auth` | Público + limite de tentativas | Criar conta e entrar. |
+| `POST /api/auth/logout` | Sessão/cookie | Encerrar a sessão. |
+| `GET /api/auth/me`, `PATCH /api/auth/me` | Sessão | Consultar ou atualizar o perfil próprio. |
+| `GET /api/auth/google/config`, `GET /api/auth/google`, `POST /api/auth/google/callback` | Público + validação Supabase | Configurar e concluir login Google. |
+| `GET /api/produtos`, `GET /api/produtos/:id`, `GET /api/produtores`, `GET /api/produtores/:id`, `GET /api/categorias` | Público | Consultar catálogo ativo. |
+| `POST /api/produtos`, `PATCH /api/produtos/:id`, `DELETE /api/produtos/:id` | Produtor; alterações verificam dono | Gerenciar produtos próprios. DELETE desativa e preserva histórico. |
+| `GET /api/produtor/produtos`, `GET /api/produtor/pedidos` | Produtor | Consultar produtos e pedidos da própria loja. |
+| `GET /api/pedidos`, `GET /api/pedidos/:id` | Sessão; pedidos próprios | Consultar histórico de compras. |
+| `GET/POST /api/conversas`, `GET/POST /api/conversas/:id/mensagens` | Sessão; participante da conversa | Criar conversas e ler/enviar mensagens. |
+| `POST /api/perfil/imagem` | Sessão + limite de upload | Enviar a própria foto. |
+| `POST /api/produtor/imagens` | Produtor + limite de upload | Enviar imagem de loja ou produto. |
+| `POST /api/pagamentos/checkout` | Sessão + limite de tentativas | Criar checkout calculado pelo backend. |
+| `GET /api/pagamentos/mercadopago/conectar`, `GET /api/pagamentos/mercadopago/status` | Produtor | Conectar e consultar a própria conta de recebimento. |
+| `GET /api/pagamentos/mercadopago/callback` | OAuth com estado assinado e cookie | Finalizar conexão Mercado Pago. |
+| `POST /api/pagamentos/mercadopago/webhook` | Assinatura HMAC válida | Receber atualização autenticada do pagamento. |
 
-### Comportamento: `script.js`
+## Pagamentos
 
-O frontend busca catálogo, autenticação e conversas da API (`server/`) pela função
-`api()` no topo do arquivo. O `server/src/db/seed.ts` serve apenas para popular um banco
-de desenvolvimento vazio com dados de exemplo.
+O checkout usa Mercado Pago Checkout Pro Marketplace. O carrinho finaliza uma loja por vez. O servidor calcula preços e taxa a partir do banco, registra o pedido como pendente e só marca o pagamento conforme o webhook assinado e a consulta ao Mercado Pago confirmarem o resultado.
 
-| Bloco | O que editar |
-| --- | --- |
-| `api()` e `API_BASE` | Chamada HTTP central (cookies inclusos) e URL base do backend |
-| `categoryIcons` | SVGs usados nos botões de categoria (só isso continua fixo no frontend) |
-| `$` e `$$` | Atalhos para `querySelector` e `querySelectorAll` |
-| `loadProducts()`, `renderProducts()`, `productCard()` | Busca (com filtros via query string), estrutura e conteúdo dos cards de produto |
-| `loadProducers()`, `renderProducers()`, `producerCard()` | Grid de produtores e conteúdo do modal de perfil |
-| `renderCart()`, `saveCart()`, `saveFavorites()` | Carrinho e favoritos — **continuam no `localStorage`** (funcionam sem login; só o checkout exige sessão) |
-| `openAuthModal()`, `setAuthMode()`, `loadSession()` | Login, cadastro (com perfil de produtor) e sessão atual |
-| `loadConversations()`, `selectConversation()`, `renderMessages()` | Chat: lista de conversas e histórico de mensagens |
-| `openModal()` e `closeModals()` | Abertura e fechamento dos modais |
-
-Os elementos são encontrados principalmente por `id`, por exemplo `$("#productGrid")`, por classe, por exemplo `$(".search-wrap input")`, e por atributos `data-*`, por exemplo `[data-cart]` e `[data-producer]`. Ao criar um novo componente interativo, adicione um seletor estável no HTML e conecte o evento no bloco correspondente do `script.js`.
-
-## Integração com o backend
-
-As principais operações do frontend usam o backend em `server/`. Algumas preferências,
-como carrinho e favoritos, continuam locais ao navegador; o checkout não processa
-pagamentos reais.
-
-### O que ainda é só do navegador (por design, não é mock temporário)
-
-- **Carrinho** (`agrifam-cart`) e **favoritos** (`agrifam-favorites`) continuam no `localStorage`, disponíveis no botão do coração no cabeçalho (e no menu mobile). As listas são específicas deste navegador.
-- Perfil pessoal, troca de senha com a senha atual, perfil da loja, catálogo e pedidos usam a API e o banco.
-
-### O que rodar para desenvolver localmente
-
-1. Na primeira execução, copie `server/.env.example` para `server/.env` e preencha as variáveis da seção [Configuração local e Supabase](#configuração-local-e-supabase). Nunca copie credenciais reais para o README.
-2. Prepare o banco usando **um** método: execute `server/supabase-schema.sql` no SQL Editor do Supabase, ou configure `DATABASE_URL` e rode as migrações PostgreSQL com `npm run db:migrate` dentro de `server/` (usa `server/src/db/migrations-pg/`). Não aplique os dois métodos sobre as mesmas tabelas. O servidor não cria nem altera tabelas automaticamente ao iniciar.
-3. Inicie o backend em um terminal:
-
-   ```bash
-   cd server
-   npm ci
-   npm run dev
-   ```
-
-   A API fica em `http://localhost:3333`.
-
-4. Em outro terminal, na raiz do projeto, sirva a página por HTTP — não abra `index.html` como `file://`:
-
-   ```bash
-   python3 -m http.server 5173
-   ```
-
-   Abra `http://localhost:5173`.
-
-5. Para login Google, configure `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` no `server/.env`. No Supabase, ative o provedor Google e informe o Client ID/Secret do Google. Cadastre no Google Cloud a callback informada pelo Supabase e permita as URLs local e de produção em **Authentication → URL Configuration**.
-6. Para upload de imagens, configure `SUPABASE_SECRET_KEY` apenas no backend e crie o bucket público `agrifam-images` (ou informe outro nome em `SUPABASE_STORAGE_BUCKET`). Nunca exponha a secret key no frontend.
-7. Localmente, `script.js` envia chamadas para a API em `:3333`. Se frontend e backend estiverem em domínios diferentes, configure `window.AGRIFAM_API_BASE` e `CORS_ORIGIN` com os endereços corretos.
-
-### Configuração local e Supabase
-
-Copie `server/.env.example` para `server/.env` e substitua os exemplos. O `.env` real é ignorado pelo Git.
-
-| Variável | Onde obter/usar | Observação |
-| --- | --- | --- |
-| `DATABASE_URL` | Supabase → **Connect** → PostgreSQL | URI de conexão; configure TLS (`sslmode=require`) e faça URL-encoding de caracteres especiais na senha. |
-| `JWT_SECRET` | Gere localmente com `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` | O backend exige pelo menos 32 caracteres. Mantenha o mesmo valor nos ambientes que compartilham sessões. |
-| `PORT` | Definido localmente | Padrão `3333`; a Vercel define sua própria porta. |
-| `CORS_ORIGIN` | URL do frontend | Local: `http://localhost:5173`. Em hospedagem, use o domínio real do site. |
-| `SUPABASE_URL` | Supabase → **Project Settings → API** | URL do projeto usada no OAuth e Storage. |
-| `SUPABASE_PUBLISHABLE_KEY` | Supabase → **Project Settings → API** | Chave pública usada para iniciar a autenticação; não substitui autorização no backend. |
-| `SUPABASE_SECRET_KEY` | Supabase → **Project Settings → API** | Somente backend. Nunca publicar em frontend, README ou Git. |
-| `SUPABASE_STORAGE_BUCKET` | Nome do bucket de imagens | Padrão `agrifam-images`; o backend precisa de permissão de escrita e o bucket é público para exibir imagens. |
-
-Para criar as tabelas, revise e execute `server/supabase-schema.sql` no SQL Editor do projeto Supabase correto. Não rode seed de demonstração em banco com usuários ou produtos reais.
-
-### Configurar login Google
-
-1. No Supabase, abra **Authentication → Sign In / Providers → Google** e habilite o provedor.
-2. Configure o Client ID e o Client Secret do OAuth do Google Cloud no provedor Google do Supabase. Use como callback a URL informada pelo Supabase nessa tela.
-3. No Supabase, abra **Authentication → URL Configuration** e adicione a URL local e a URL pública do AgriFam à lista de redirecionamentos permitidos.
-4. Configure `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` no backend. O Client Secret do Google fica no Supabase; não o coloque no frontend.
-
-### Configurar imagens de perfil
-
-Crie no Supabase Storage o bucket indicado por `SUPABASE_STORAGE_BUCKET` (padrão `agrifam-images`) e mantenha `SUPABASE_SECRET_KEY` apenas no backend. A rota `POST /api/perfil/imagem` valida autenticação, tipo e tamanho do arquivo antes do upload. Se houver erro `Invalid Compact JWS` ou `Unauthorized`, confira se a secret key é do projeto correto, sem espaços ou quebras; depois atualize a variável no deploy e publique novamente.
+Cada produtor precisa conectar a própria conta pelo painel de perfil. Sem essa conexão, o checkout é recusado e o comprador recebe uma notificação. Configure as URLs de callback e webhook no painel Mercado Pago e use credenciais de teste antes de habilitar as de produção.
 
 ## Publicar na Vercel
 
-O `vercel.json` configura o build do backend e encaminha `/api/*` para uma única função em `api/index.ts`. Essa estrutura evita criar uma função serverless separada por endpoint. A raiz do projeto deve ser o **Root Directory** da Vercel.
+1. Vincule o repositório GitHub ao projeto Vercel e use a raiz deste repositório como **Root Directory**.
+2. Cadastre as variáveis da tabela acima nos ambientes Vercel necessários. Não cole valores secretos em comandos compartilhados ou capturas de tela; use o prompt da CLI ou o painel protegido.
+3. Confira `PUBLIC_APP_URL`, `CORS_ORIGIN` e `MP_REDIRECT_URI` para o domínio canônico HTTPS; configure também Redis e email.
+4. Revise as migrações PostgreSQL pendentes e aplique-as ao banco correto com backup feito. Não rode migrações às cegas em produção.
+5. Faça o deploy e confira `GET /api/health`, autenticação e logs da função.
 
-1. Importe o repositório `joao00789/agrifam` no painel da Vercel ou conecte um projeto Vercel existente ao repositório.
-2. Confirme o **Root Directory** como `.` (raiz do repositório) e deixe o build ser definido pelo `vercel.json`.
-3. Em **Settings → Environment Variables**, cadastre para **Production**: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` e `SUPABASE_STORAGE_BUCKET`. Use valores do mesmo projeto Supabase; não reutilize os exemplos deste README.
-4. Faça um novo deploy após alterar variáveis. Para publicar pelo terminal, entre na raiz do projeto, faça `npx --yes vercel login`, vincule o projeto correto com `npx --yes vercel link` e rode `npx --yes vercel --prod`.
-
-O deploy automático por Git depende de o projeto Vercel estar conectado ao repositório e da branch de produção estar configurada. Publicar uma branch de revisão não altera automaticamente o site de produção.
-
-### Responsabilidade de cada lado
-
-**Frontend:** exibir dados, validar campos básicos, controlar estados visuais, enviar requisições e mostrar mensagens de sucesso ou erro.
-
-**Backend:** autenticar usuários, validar todos os dados novamente, autorizar acesso, calcular preços, persistir pedidos e conversas, e proteger segredos.
-
-O frontend nunca contém senha, token privado ou regra de preço considerada confiável — `POST /api/pedidos` sempre recalcula o preço a partir do produto no banco, ignorando o que vier do cliente.
-
-### Painel do produtor ("Meus produtos")
-
-Um produtor autenticado tem acesso a um painel para cadastrar, editar e remover seus
-próprios produtos, sem precisar chamar a API diretamente. No cabeçalho, o botão "Vender
-no AgriFam" vira **"Meus produtos"** assim que o usuário logado tem `role: "producer"`
-(ver `updateAuthUI()` em `script.js`) e abre o modal `#myProductsModal`.
-
-- O formulário cadastra (`POST /api/produtos`) ou atualiza (`PATCH /api/produtos/:id`,
-  ao clicar em "Editar" num item da lista) um produto.
-- "Remover" chama `DELETE /api/produtos/:id` (com uma confirmação nativa do navegador).
-- A lista vem de `GET /api/produtor/produtos` — um endpoint que não existia antes desta
-  tela: os outros endpoints de produto não filtram por dono, e sem ele o frontend não
-  tinha como saber com segurança quais produtos são do produtor logado (o campo
-  `producer` da resposta é só o nome da propriedade, que não é garantido único no
-  banco).
-- Depois de qualquer criação/edição/remoção, o catálogo público e as categorias são
-  recarregados (`refreshCatalogAfterChange()`), para preço e contagem não ficarem
-  desatualizados no resto do site.
-
-## API do backend
-
-O backend em `server/` usa Node.js, Express, TypeScript, Drizzle e PostgreSQL no Supabase.
-As rotas organizam autenticação, catálogo, pedidos, uploads e conversas.
-
-Configure `server/.env` usando `server/.env.example` e a URI PostgreSQL em Supabase >
-Connect. Rode `cd server && npm ci && npm run dev`; a API sobe em
-`http://localhost:3333` e usa o schema PostgreSQL preparado em `server/supabase-schema.sql`.
-O servidor não aplica migrations nem insere seed ao iniciar, para não alterar seu banco
-remoto automaticamente. `npm run db:seed` é uma ação manual e só deve ser executada
-quando você realmente quiser os dados de demonstração.
-
-### Autenticação
-
-| Rota | Método | Corpo (JSON) | Resposta em caso de sucesso |
-| --- | --- | --- | --- |
-| `/api/auth/register` | POST | `{ "name", "email", "password", "role": "buyer" \| "producer" }` — se `role` for `"producer"`, exige também `{ "property", "location", "specialty" }` (`"history"`/`"image"` opcionais) | `201` + `{ "user": { id, name, email, role } }`, define cookie de sessão |
-| `/api/auth` | POST | `{ "email", "password" }` | `200` + `{ "user": {...} }`, define cookie de sessão |
-| `/api/auth/logout` | POST | — | `200` + `{ "ok": true }`, limpa o cookie |
-| `/api/auth/me` | GET | — (usa o cookie de sessão) | `200` + `{ "user": {...} }`, ou `401` se não autenticado |
-| `/api/auth/me` | PATCH | Campos permitidos do perfil | `200` + usuário atualizado; exige sessão |
-| `/api/auth/google/config` | GET | — | Informa se Supabase Google OAuth está configurado |
-| `/api/auth/google` | GET | — | Inicia o login Google via Supabase |
-| `/api/auth/google/callback` | POST | Token retornado pelo fluxo Google | Valida o usuário e cria cookie de sessão local |
-
-A sessão é um JWT em cookie `httpOnly` (`agrifam_token`), válido por 7 dias.
-
-### Catálogo
-
-| Rota | Método | Corpo/Query | Resposta em caso de sucesso |
-| --- | --- | --- | --- |
-| `/api/produtos` | GET | Query: `search`, `category`, `sort` (`featured`\|`price-low`\|`rating`) | `200` + `Product[]` (mesmo formato de [types.ts](types.ts)) |
-| `/api/produtos/:id` | GET | — | `200` + `Product`, ou `404` |
-| `/api/produtos` | POST | `{ "name", "price", "unit", "location", "category", "image"?, "rating"? }` — precisa de sessão com `role: "producer"` | `201` + `Product` |
-| `/api/produtos/:id` | PATCH | Qualquer subconjunto dos campos acima — só o produtor dono do produto pode alterar | `200` + `Product`, ou `403` se não for o dono |
-| `/api/produtos/:id` | DELETE | — só o produtor dono do produto pode remover | `200` + `{ "ok": true }`, ou `403` se não for o dono |
-| `/api/produtor/produtos` | GET | — precisa de sessão com `role: "producer"` | `200` + `Product[]`, só os produtos do produtor autenticado (usado pelo painel "Meus produtos") |
-| `/api/produtores` | GET | — | `200` + `Producer[]` |
-| `/api/produtores/:id` | GET | — | `200` + `Producer`, ou `404` |
-| `/api/categorias` | GET | — | `200` + `{ id, name, icon, count }[]` — `count` é calculado a partir dos produtos reais, não é um valor fixo |
-
-### Pedidos
-
-Pedidos são **simulados nesta fase**: não há gateway de pagamento integrado ainda, todo
-pedido nasce com `status: "confirmado"`. Qualquer usuário autenticado pode comprar
-(comprador ou produtor). O preço de cada item é sempre recalculado a partir do produto
-no banco — o backend ignora qualquer preço enviado pelo cliente no corpo da requisição.
-
-| Rota | Método | Corpo (JSON) | Resposta em caso de sucesso |
-| --- | --- | --- | --- |
-| `/api/pedidos` | POST | `{ "items": [{ "productId", "quantity" }] }` (ver `CreateOrderInput` em [types.ts](types.ts)) | `201` + `Order` (ver `Order`/`OrderItem` em types.ts) |
-| `/api/pedidos` | GET | — | `200` + `Order[]`, só os pedidos do usuário autenticado |
-| `/api/pedidos/:id` | GET | — | `200` + `Order`, ou `403` se o pedido não for do usuário autenticado |
-| `/api/produtor/pedidos` | GET | — precisa de sessão com `role: "producer"` | `200` + lista de itens de pedido que incluem produtos do produtor autenticado (com `buyerName`, `productName`, `quantity`, `subtotal`, etc.) |
-
-### Conversas
-
-Uma conversa é sempre entre um comprador e um produtor (identificado pelo `producerId`
-de `GET /api/produtores`); existe no máximo uma conversa por par comprador-produtor —
-iniciar de novo com o mesmo produtor devolve a conversa já existente em vez de duplicar.
-
-| Rota | Método | Corpo (JSON) | Resposta em caso de sucesso |
-| --- | --- | --- | --- |
-| `/api/conversas` | GET | — | `200` + `ConversationSummary[]` (conversas em que o usuário autenticado participa, como comprador ou como produtor) |
-| `/api/conversas` | POST | `{ "producerId" }` | `201` + conversa nova, ou `200` + conversa já existente entre esse par |
-| `/api/conversas/:id/mensagens` | GET | — só participantes da conversa | `200` + `Message[]`, em ordem cronológica |
-| `/api/conversas/:id/mensagens` | POST | `{ "text" }` (1 a 2000 caracteres) | `201` + `Message` |
-
-Erros seguem sempre o formato `{ "error": "mensagem" }`, com os códigos HTTP `400`
-(dados inválidos, categoria/produto inexistente, produtor iniciando conversa consigo
-mesmo), `401` (sem sessão), `403` (perfil/dono errado, ou não participa da conversa) e
-`409` (email já cadastrado no registro).
-
-### Upload de imagens
-
-| Rota | Método | Corpo | Resposta |
-| --- | --- | --- | --- |
-| `/api/perfil/imagem` | POST | `{ "dataUrl": "data:image/...;base64,..." }` | `201` + `{ "image": "URL pública" }`; exige sessão |
-| `/api/produtor/imagens` | POST | `{ "dataUrl": "data:image/...;base64,...", "kind": "store" ou "products" }` | `201` + `{ "image": "URL pública" }`; exige perfil de produtor |
-
-São aceitos PNG, JPG e WebP até 3 MB. O backend envia a imagem ao Supabase Storage e devolve uma URL pública. A chave `SUPABASE_SECRET_KEY` fica somente no servidor.
-
-## Organização dos arquivos
-
-- `index.html`: estrutura semântica, navegação, seções, modais e pontos de montagem dinâmicos.
-- `style.css`: tokens visuais, componentes, estados de interação, mapa, conversas e responsividade. As seções estão numeradas no início do arquivo.
-- `script.js`: comportamento executado no navegador: busca, filtros, carrinho, chat, modais e carrossel.
-- `region-map.js`: inicializa o Leaflet, posiciona referências municipais e conecta os botões do mapa.
-- `script.ts`: base tipada para a migração gradual do comportamento para TypeScript.
-- `types.ts`: contratos compartilhados de categorias, produtos, produtores, carrinho e filtros.
-- `api/index.ts` e `api/_app.ts`: função serverless única da Vercel e inicialização do Express.
-- `vercel.json`: build, arquivos estáticos e reescrita das rotas `/api/*`.
-- `asset/`: imagens e ícones locais usados pela interface.
-- `server/`: backend (Node.js + Express + TypeScript), com o próprio `package.json`,
-  testes (`src/tests`), validações (`src/schemas`), migrações PostgreSQL (`src/db/migrations-pg`) e SQL inicial (`supabase-schema.sql`).
-- `docs/MANUTENCAO.md`: mapa do código, orientações para mudanças comuns e melhorias pendentes.
-
-## Desenvolvimento
-
-Instale as dependências, compile o backend e execute os testes de API:
+Deploy pelo terminal:
 
 ```bash
-npm install
-npm run check
-npm ci --prefix server
-npm run build --prefix server
-npm test --prefix server
+npx --yes vercel login
+npx --yes vercel link
+npx --yes vercel --prod
 ```
 
-## Tipografia e estilos
+O `vercel.json` compila `server/` e reescreve `/api/*` para `api/index.ts`, que inicializa a aplicação Express em `api/_app.ts`.
 
-- **DM Sans**: títulos e elementos de destaque.
-- **Nunito Sans**: textos, navegação e controles.
+## Estrutura do projeto
 
-As fontes são carregadas no `<head>` de `index.html` e expostas pelos tokens `--display` e `--sans` no `style.css`.
+| Caminho | Responsabilidade |
+| --- | --- |
+| `index.html` | Estrutura, navegação, formulários, modais e regiões acessíveis. |
+| `style.css` | Tokens visuais, componentes, estados, temas e responsividade. |
+| `script.js` | Comportamento do navegador, chamadas de API e renderização. |
+| `region-map.js` | Mapa regional Leaflet. |
+| `types.ts` | Tipos compartilhados do frontend. |
+| `api/index.ts`, `api/_app.ts` | Ponto de entrada serverless e criação da API. |
+| `server/src/app.ts` | Middleware HTTP, cabeçalhos, CORS e montagem das rotas. |
+| `server/src/routes/` | Métodos HTTP e autenticação exigida em cada rota. |
+| `server/src/controllers/` | Regras de negócio e acesso a dados. |
+| `server/src/middlewares/` | Sessão, autorização, limitação de tentativas e erros. |
+| `server/src/schemas/` | Schemas para validar entradas. |
+| `server/src/db/schema.ts` | Modelo Drizzle do banco. |
+| `server/src/db/migrations-pg/` | Migrações PostgreSQL. |
+| `server/supabase-schema.sql` | Estrutura inicial do banco. |
+| `server/.env.example` | Nomes e formato das variáveis, sem segredos reais. |
+| `docs/MANUTENCAO.md` | Guia complementar para localizar e alterar funcionalidades. |
+| `docs/ROADMAP_SEGURANCA.md` | Estado das proteções, pendências externas e verificações para lançamento. |
+| `asset/` | Imagens e identidade visual local. |
 
-Os principais tokens visuais ficam no bloco `:root` de `style.css`: `--green`, `--green-dark`, `--ink`, `--muted`, `--cream`, `--line`, `--white`, `--display`, `--sans` e `--shadow`.
+## Manutenção
 
-## Antes de enviar alterações
+- Ao adicionar uma rota, valide a entrada no backend e escolha explicitamente se exige `requireAuth`, `requireRole` e verificação de propriedade/participação.
+- Não confie em IDs, preços, função do usuário ou permissões enviados pelo frontend. Releia os dados necessários do banco na API.
+- Ao inserir dados dinâmicos no HTML, escape texto e valide URLs de imagem. Não use `innerHTML` com texto fornecido pelo usuário sem sanitização.
+- Ao mudar tabelas, crie/revise uma migração PostgreSQL e faça backup antes de aplicar em produção.
+- Depois de mudar arquivos do app shell, atualize a versão do cache em `service-worker.js` para os navegadores buscarem os arquivos novos.
+- Antes de publicar, revise `git diff`, confirme que `.env` não está incluído e compile o backend:
 
-1. Execute `npm run check` para verificar os contratos TypeScript.
-2. Execute `npx prettier --write index.html style.css script.js script.ts types.ts tsconfig.json` depois de editar os arquivos.
-3. Confira `git diff --check` para detectar problemas de espaços e formatação.
-
-## Próximos passos
-
-- Recuperação de senha (hoje o link só avisa que ainda não está disponível).
-- Gateway de pagamento real e regras de estoque (o checkout ainda não cobra pagamentos).
-- Integração contínua com o repositório GitHub oficial e cobertura de testes de interface.
-- Rotina documentada de backup e restauração do banco.
-
-Veja prioridades e orientações no [Guia de manutenção](docs/MANUTENCAO.md).
+```bash
+npm run check
+npm run build --prefix server
+```

@@ -1,6 +1,6 @@
 import { app } from "./_app.js";
 
-// Vercel entrypoint: keep one API function and let Express dispatch all /api routes.
-// The matching rewrite is in the root vercel.json; splitting routes into separate
-// functions can exceed the function limit on the Hobby plan.
+// Eu explico: Ponto de entrada da Vercel: mantenha uma função de API e deixe o Express
+// Eu explico: encaminhar todas as rotas /api. A reescrita correspondente fica em vercel.json;
+// Eu explico: dividir as rotas pode ultrapassar o limite de funções do plano Hobby.
 export default app;

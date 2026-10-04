@@ -1,0 +1,15 @@
+{
+  "id": "/",
+  "name": "AgriFam | Do campo para sua mesa",
+  "short_name": "AgriFam",
+  "description": "Encontre alimentos locais e conheça quem produz.",
+  "lang": "pt-BR",
+  "start_url": "/?source=app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffdf8",
+  "theme_color": "#11662e",
+  "icons": [
+    { "src": "/asset/icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
